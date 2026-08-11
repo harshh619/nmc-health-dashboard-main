@@ -89,16 +89,26 @@ export default function SurveillanceMap({
       .map(([ward, count]) => `Prabhag ${ward} (${count})`);
   }, [filteredPatientData]);
 
-  // Load geojson data
+  // Load geojson data safely
   useEffect(() => {
-    fetch('/wards_simplified.geojson')
-      .then((res) => {
-        if (!res.ok) return fetch('/wards.geojson');
-        return res;
-      })
-      .then((res) => res.json())
-      .then((data) => setGeoData(data))
-      .catch((err) => console.error('Error loading GeoJSON:', err));
+    async function loadGeoJson() {
+      try {
+        let res = await fetch('/wards_simplified.geojson');
+        if (!res.ok) {
+          res = await fetch('/wards.geojson');
+        }
+        if (!res.ok) {
+          throw new Error(`GeoJSON HTTP error ${res.status}`);
+        }
+        const data = await res.json();
+        if (data && data.features) {
+          setGeoData(data);
+        }
+      } catch (err) {
+        console.warn('GeoJSON load error:', err);
+      }
+    }
+    loadGeoJson();
   }, []);
 
   // Initialize Leaflet map & MarkerCluster client-side
@@ -157,20 +167,23 @@ export default function SurveillanceMap({
       map.invalidateSize();
     }, 600);
 
-    // ResizeObserver to automatically trigger invalidateSize when sidebar collapses or window resizes
+    // Debounced ResizeObserver to automatically trigger invalidateSize when container resizes
+    let resizeTimer: any = null;
     const resizeObserver = new ResizeObserver(() => {
-      if (leafletMapRef.current) {
-        leafletMapRef.current.invalidateSize();
-      }
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (leafletMapRef.current) {
+          leafletMapRef.current.invalidateSize();
+        }
+      }, 200);
     });
 
     if (mapContainerRef.current) {
       resizeObserver.observe(mapContainerRef.current);
     }
 
-    // Anti-reset memory & resize listener
-    map.on('moveend zoomend resize', () => {
-      map.invalidateSize();
+    // Anti-reset memory listener
+    map.on('moveend zoomend', () => {
       const center = map.getCenter();
       sessionStorage.setItem('mapLat', center.lat.toString());
       sessionStorage.setItem('mapLng', center.lng.toString());
@@ -238,7 +251,7 @@ export default function SurveillanceMap({
       }
     });
 
-    const maxCases = Math.max(...Object.values(cleanWardCounts), 1);
+    const maxCases = Object.values(cleanWardCounts).reduce((max, c) => (c > max ? c : max), 1);
 
     const getDensityColor = (cases: number) => {
       if (cases === 0) return '#ebedef';
@@ -427,9 +440,20 @@ export default function SurveillanceMap({
               const cLat = lats.reduce((a, b) => a + b, 0) / lats.length;
               const cLon = lons.reduce((a, b) => a + b, 0) / lons.length;
 
+              const ratio = Math.min(1, Math.max(0, count / maxCases));
+              const size = Math.round(32 + ratio * 28);
+              const fontSize = count >= 10000 ? 10 : count >= 1000 ? 11 : 12;
+              const isHotspot = count >= maxCases * 0.7;
+
               const badgeIcon = L.divIcon({
-                className: 'custom-badge-icon',
-                html: `<div style="background-color:#e53e3e; border:2px solid #fff; color:#fff; font-weight:bold; font-size:11px; width:26px; height:26px; line-height:22px; border-radius:50%; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,0.4); transform:translate(-50%, -50%);">${count}</div>`,
+                className: 'dynamic-ward-badge-icon',
+                iconSize: [size, size],
+                iconAnchor: [size / 2, size / 2],
+                html: `<div style="background:${
+                  isHotspot
+                    ? 'linear-gradient(135deg, #b91c1c, #7f1d1d)'
+                    : 'linear-gradient(135deg, #ef4444, #b91c1c)'
+                }; border:2.5px solid #ffffff; color:#ffffff; font-weight:800; font-size:${fontSize}px; width:${size}px; height:${size}px; min-width:${size}px; min-height:${size}px; border-radius:9999px; display:flex; align-items:center; justify-content:center; text-align:center; box-shadow:0 4px 12px rgba(0,0,0,0.5); white-space:nowrap; padding:0 3px; box-sizing:border-box;">${count.toLocaleString()}</div>`,
               });
 
               L.marker([cLat, cLon], { icon: badgeIcon })
@@ -461,6 +485,11 @@ export default function SurveillanceMap({
         }
       });
     }
+
+    return () => {
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeObserver.disconnect();
+    };
   }, [geoData, filteredPatientData, mapMode, diseaseColorMap, playbackEnabled]);
 
   // Disease Counts for Legend

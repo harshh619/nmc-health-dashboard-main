@@ -267,25 +267,19 @@ export default function AnalyticsCharts({
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    {...({
-                      activeIndex: activeDiseaseIndex,
-                      activeShape: renderActiveShape,
-                      data: diseaseData,
-                      cx: "50%",
-                      cy: "50%",
-                      innerRadius: 65,
-                      outerRadius: 95,
-                      paddingAngle: 3,
-                      dataKey: "value",
-                      onMouseEnter: (_: any, index: number) => setActiveDiseaseIndex(index),
-                      onMouseLeave: () => setActiveDiseaseIndex(undefined),
-                    } as any)}
+                    data={diseaseData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={65}
+                    outerRadius={95}
+                    paddingAngle={3}
+                    dataKey="value"
                   >
                     {diseaseData.map((entry) => (
                       <Cell
                         key={entry.name}
                         fill={diseaseColorMap[entry.name] || '#3b82f6'}
-                        className="cursor-pointer transition-all duration-300"
+                        className="cursor-pointer transition-all duration-300 hover:opacity-80"
                       />
                     ))}
                   </Pie>

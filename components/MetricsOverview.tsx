@@ -35,7 +35,7 @@ export default function MetricsOverview({
 
     if (dates.length === 0) return { delta: '0', isNew: false };
 
-    const maxDate = Math.max(...dates);
+    const maxDate = dates.reduce((max, cur) => (cur > max ? cur : max), dates[0]);
     const thirtyDays = 30 * 24 * 60 * 60 * 1000;
 
     let currPeriod = patientData.filter((d) => {

@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { PatientRecord } from './types';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://oysmagibpobxsipxjzpd.supabase.co';
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_secret_yX2l6GXr0lKngsCY_CxSng_phLv7wH_';
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_JPFPIiEzvNcXFFPLLBtCRQ_jWMs1jqa';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 

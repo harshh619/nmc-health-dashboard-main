@@ -13,12 +13,11 @@ import CommandToolbar from '../components/CommandToolbar';
 import MetricsOverview from '../components/MetricsOverview';
 import AiAlertBanner from '../components/AiAlertBanner';
 import SidebarFilters from '../components/SidebarFilters';
-import AnalyticsCharts from '../components/AnalyticsCharts';
 import PatientDataTable from '../components/PatientDataTable';
 import Footer from '../components/Footer';
 import SkeletonLoader from '../components/SkeletonLoader';
 
-// Dynamically import Leaflet map with { ssr: false } to avoid window reference errors
+// Dynamically import Leaflet map & Recharts charts with { ssr: false } to avoid SSR/hydration errors
 const SurveillanceMap = dynamic(
   () => import('../components/SurveillanceMap'),
   {
@@ -26,6 +25,18 @@ const SurveillanceMap = dynamic(
     loading: () => (
       <div className="h-[600px] w-full bg-slate-100 dark:bg-slate-800 animate-pulse rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-500 font-semibold text-sm">
         🗺️ Loading Surveillance Map...
+      </div>
+    ),
+  }
+);
+
+const AnalyticsCharts = dynamic(
+  () => import('../components/AnalyticsCharts'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[400px] w-full bg-slate-100 dark:bg-slate-800 animate-pulse rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-500 font-semibold text-sm">
+        📊 Loading Visual Analytics...
       </div>
     ),
   }

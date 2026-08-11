@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   RotateCcw,
   Filter,
@@ -55,11 +55,16 @@ export default function SidebarFilters({
   onToggleCollapse,
 }: SidebarFiltersProps) {
   const isSupabase = dataSource.includes('Supabase');
-  const syncTime = new Date().toLocaleTimeString('en-IN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  });
+  const [syncTime, setSyncTime] = useState('');
+  useEffect(() => {
+    setSyncTime(
+      new Date().toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      })
+    );
+  }, []);
 
   // Helper to extract Zone from row.Zone or Ward_Name fallback
   const getRowZone = (row: PatientRecord) => {

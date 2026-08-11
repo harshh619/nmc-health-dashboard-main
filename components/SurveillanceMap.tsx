@@ -262,18 +262,19 @@ export default function SurveillanceMap({
     };
 
     // GeoJSON Choropleth Layer
-    L.geoJSON(geoData as any, {
+    const geoJsonLayer = L.geoJSON(geoData as any, {
       style: (feature: any) => {
         const rawName = feature.properties?.name || 'Unknown';
         const cleanW = cleanWardName(rawName);
         const count = cleanWardCounts[cleanW] || 0;
         const isCriticalHotspot = count >= maxCases * 0.7 && count > 0;
+        const hasCases = count > 0;
 
         return {
-          color: isCriticalHotspot ? '#991b1b' : '#444444',
-          weight: isCriticalHotspot ? 2 : 1,
+          color: isCriticalHotspot ? '#991b1b' : hasCases ? '#1d4ed8' : '#94a3b8',
+          weight: isCriticalHotspot ? 2.5 : hasCases ? 2 : 1,
           fillColor: getDensityColor(count),
-          fillOpacity: isCriticalHotspot ? 0.8 : 0.65,
+          fillOpacity: hasCases ? 0.85 : 0.25,
           className: isCriticalHotspot ? 'hotspot-ward-glow' : '',
         };
       },
@@ -484,6 +485,33 @@ export default function SurveillanceMap({
             .addTo(map);
         }
       });
+    }
+
+    // Auto-fit map viewport to active filtered features / points
+    const activeBounds = L.latLngBounds([]);
+
+    filteredPatientData.forEach((row) => {
+      if (row.Lat && row.Long && !isNaN(Number(row.Lat)) && !isNaN(Number(row.Long))) {
+        activeBounds.extend([Number(row.Lat), Number(row.Long)]);
+      }
+    });
+
+    if (geoJsonLayer) {
+      geoJsonLayer.eachLayer((layer: any) => {
+        if (layer.feature) {
+          const cleanW = cleanWardName(layer.feature.properties?.name);
+          if (cleanWardCounts[cleanW] > 0 && typeof layer.getBounds === 'function') {
+            const b = layer.getBounds();
+            if (b && b.isValid()) {
+              activeBounds.extend(b);
+            }
+          }
+        }
+      });
+    }
+
+    if (activeBounds.isValid() && filteredPatientData.length > 0) {
+      map.fitBounds(activeBounds, { padding: [40, 40], maxZoom: 14, animate: true });
     }
 
     return () => {

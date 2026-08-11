@@ -32,6 +32,14 @@ export default function PatientDataTable({
   });
 
   const totalPages = Math.ceil(filteredData.length / pageSize) || 1;
+
+  // Clamp current page if filtered data shrinks below current page bounds
+  React.useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(Math.max(1, totalPages));
+    }
+  }, [totalPages, currentPage]);
+
   const paginatedData = filteredData.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
@@ -194,29 +202,54 @@ export default function PatientDataTable({
       </div>
 
       {/* Pagination Footer */}
-      <div className="flex items-center justify-between mt-3 text-xs text-slate-500 dark:text-slate-400">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-3 text-xs text-slate-500 dark:text-slate-400">
         <div>
-          Page {currentPage} of {totalPages} ({filteredData.length} records)
+          {filteredData.length === 0
+            ? 'No records found'
+            : `Showing ${(currentPage - 1) * pageSize + 1}–${Math.min(
+                currentPage * pageSize,
+                filteredData.length
+              )} of ${filteredData.length} records`}
         </div>
 
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            className="p-1 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-40 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" />
-          </button>
-          <span className="px-2 font-semibold text-slate-700 dark:text-slate-300">
-            {currentPage}
-          </span>
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            className="p-1 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-40 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-          >
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
+        <div className="flex items-center gap-3">
+          {/* Direct Page Number Select Dropdown */}
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/60 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+            <span className="text-slate-600 dark:text-slate-400 font-medium">Page</span>
+            <select
+              value={currentPage}
+              onChange={(e) => setCurrentPage(Number(e.target.value))}
+              aria-label="Select page number"
+              className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded px-1.5 py-0.5 font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-xs"
+            >
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+                <option key={num} value={num}>
+                  {num}
+                </option>
+              ))}
+            </select>
+            <span className="text-slate-600 dark:text-slate-400 font-medium">of {totalPages}</span>
+          </div>
+
+          {/* Navigation Buttons */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              title="Previous Page"
+              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-40 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              title="Next Page"
+              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-40 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

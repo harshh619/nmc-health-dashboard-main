@@ -79,6 +79,14 @@ export default function Home() {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedGenders, setSelectedGenders] = useState<string[]>([]);
 
+  const getTodayDateString = (): string => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Helper to extract Zone from row.Zone or Ward_Name fallback
   const getRowZone = (row: PatientRecord) => {
     return getZoneForWard(row.Ward_Name, row.Zone);
@@ -112,7 +120,7 @@ export default function Home() {
     }
   };
 
-  // Fetch Patient Data & Set Default Date Window Range (Min Date ➔ Max Date/Today)
+  // Fetch Patient Data & Set Default Date Window Range (Min Date ➔ Today/Max Date)
   const loadData = async (isInitial = false) => {
     if (isInitial) {
       setIsLoading(true);
@@ -121,7 +129,9 @@ export default function Home() {
     setPatientData(data);
     setDataSource(src);
 
-    if (isInitial && data && data.length > 0) {
+    const todayStr = getTodayDateString();
+
+    if (data && data.length > 0) {
       const validDates = data
         .map((d) => d.Date)
         .filter((d): d is string => typeof d === 'string' && d.length === 10)
@@ -129,9 +139,23 @@ export default function Home() {
 
       if (validDates.length > 0) {
         const minDate = validDates[0];
-        const maxDate = validDates[validDates.length - 1];
-        setDateRange([minDate, maxDate]);
+        const maxDateInDataset = validDates[validDates.length - 1];
+        const defaultToDate = maxDateInDataset > todayStr ? maxDateInDataset : todayStr;
+
+        if (isInitial) {
+          setDateRange([minDate, defaultToDate]);
+        } else {
+          // Auto-expand "To" date in background sync if newer records arrive
+          setDateRange((prev) => {
+            if (!prev[1] || prev[1] < defaultToDate) {
+              return [prev[0] || minDate, defaultToDate];
+            }
+            return prev;
+          });
+        }
       }
+    } else if (isInitial) {
+      setDateRange(['', todayStr]);
     }
 
     if (isInitial) {
@@ -237,17 +261,21 @@ export default function Home() {
     return map;
   }, [patientData]);
 
-  // Reset all filters to default dataset date range
+  // Reset all filters to default dataset date range (with 'To' date set to Today)
   const resetAllFilters = () => {
     const validDates = patientData
       .map((d) => d.Date)
       .filter((d): d is string => typeof d === 'string' && d.length === 10)
       .sort();
 
+    const todayStr = getTodayDateString();
     if (validDates.length > 0) {
-      setDateRange([validDates[0], validDates[validDates.length - 1]]);
+      const minDate = validDates[0];
+      const maxDateInDataset = validDates[validDates.length - 1];
+      const defaultToDate = maxDateInDataset > todayStr ? maxDateInDataset : todayStr;
+      setDateRange([minDate, defaultToDate]);
     } else {
-      setDateRange(['', '']);
+      setDateRange(['', todayStr]);
     }
     setSelectedDiseases([]);
     setSelectedZones([]);

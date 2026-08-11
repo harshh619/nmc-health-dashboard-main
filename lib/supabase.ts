@@ -10,6 +10,24 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const GOOGLE_SHEETS_CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vT_77OEOeI0MVDxYCbcTlq_Ld7Oq5CFSTC6LyYyAwQGyiHHSJhBvniVns4djzswkQSGNGT2_09r0LUA/pub?gid=0&single=true&output=csv';
 
+export function sortPatientRecordsById(records: PatientRecord[]): PatientRecord[] {
+  return [...records].sort((a, b) => {
+    const rawA = a.Patient_ID;
+    const rawB = b.Patient_ID;
+
+    const numA = typeof rawA === 'number' ? rawA : parseInt(String(rawA || '').replace(/\D+/g, ''), 10);
+    const numB = typeof rawB === 'number' ? rawB : parseInt(String(rawB || '').replace(/\D+/g, ''), 10);
+
+    const validA = !isNaN(numA);
+    const validB = !isNaN(numB);
+
+    if (validA && validB && numA !== numB) {
+      return numA - numB;
+    }
+    return String(rawA || '').localeCompare(String(rawB || ''), undefined, { numeric: true });
+  });
+}
+
 export function normalizeDateString(dateStr?: any): string {
   if (!dateStr) return '';
   const str = String(dateStr).trim();
@@ -192,7 +210,7 @@ export async function fetchPatientData(): Promise<{ data: PatientRecord[]; dataS
         const label = cleaned.length >= count
           ? `Supabase API (${cleaned.length.toLocaleString()} Records) ⚡`
           : `Supabase API (${cleaned.length.toLocaleString()} of ${count.toLocaleString()} Records) ⚡`;
-        return { data: cleaned, dataSource: label };
+        return { data: sortPatientRecordsById(cleaned), dataSource: label };
       }
     } catch (err) {
       console.warn(`Supabase fetch exception for '${tableName}':`, err);
@@ -248,7 +266,7 @@ export async function fetchPatientData(): Promise<{ data: PatientRecord[]; dataS
             Date: normalizeDateString(record.Date || new Date().toISOString().split('T')[0]),
           });
         }
-        return { data: records, dataSource: 'Google Sheets 📊' };
+        return { data: sortPatientRecordsById(records), dataSource: 'Google Sheets 📊' };
       }
     }
   } catch (err) {

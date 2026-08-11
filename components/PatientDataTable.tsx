@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Download, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PatientRecord } from '../lib/types';
 import { cleanWardName, getZoneForWard } from '../lib/wardMapping';
-import { formatDateDisplay } from '../lib/supabase';
+import { formatDateDisplay, sortPatientRecordsById } from '../lib/supabase';
 
 interface PatientDataTableProps {
   patientData: PatientRecord[];
@@ -31,7 +31,11 @@ export default function PatientDataTable({
     );
   });
 
-  const totalPages = Math.ceil(filteredData.length / pageSize) || 1;
+  const sortedData = React.useMemo(() => {
+    return sortPatientRecordsById(filteredData);
+  }, [filteredData]);
+
+  const totalPages = Math.ceil(sortedData.length / pageSize) || 1;
 
   // Clamp current page if filtered data shrinks below current page bounds
   React.useEffect(() => {
@@ -40,7 +44,7 @@ export default function PatientDataTable({
     }
   }, [totalPages, currentPage]);
 
-  const paginatedData = filteredData.slice(
+  const paginatedData = sortedData.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );

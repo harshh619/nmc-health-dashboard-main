@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Download, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PatientRecord } from '../lib/types';
-import { cleanWardName } from '../lib/wardMapping';
+import { cleanWardName, getZoneForWard } from '../lib/wardMapping';
 import { formatDateDisplay } from '../lib/supabase';
 
 interface PatientDataTableProps {
@@ -173,7 +173,9 @@ export default function PatientDataTable({
                       Ward {cleanWardName(row.Ward_Name)}
                     </span>
                   </td>
-                  <td className="p-3 text-slate-700 dark:text-slate-300">{row.Zone || 'N/A'}</td>
+                  <td className="p-3 font-medium text-slate-700 dark:text-slate-300">
+                    {getZoneForWard(row.Ward_Name, row.Zone)}
+                  </td>
                   <td className="p-3 text-slate-600 dark:text-slate-400">
                     {row.Age ?? 'N/A'} / {row.Gender ?? 'N/A'}
                   </td>

@@ -13,7 +13,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { PatientRecord } from '../lib/types';
-import { cleanWardName, WARD_TO_ZONE_MAP } from '../lib/wardMapping';
+import { cleanWardName, WARD_TO_ZONE_MAP, getZoneForWard } from '../lib/wardMapping';
 
 interface SidebarFiltersProps {
   allPatientData: PatientRecord[];
@@ -68,9 +68,7 @@ export default function SidebarFilters({
 
   // Helper to extract Zone from row.Zone or Ward_Name fallback
   const getRowZone = (row: PatientRecord) => {
-    if (row.Zone && row.Zone.trim()) return row.Zone.trim();
-    const cWard = cleanWardName(row.Ward_Name);
-    return WARD_TO_ZONE_MAP[cWard] || 'Unknown Zone';
+    return getZoneForWard(row.Ward_Name, row.Zone);
   };
 
   // Unique options derived from allPatientData

@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { PatientRecord, WeatherData } from '../lib/types';
 import { fetchPatientData } from '../lib/supabase';
-import { cleanWardName, WARD_TO_ZONE_MAP } from '../lib/wardMapping';
+import { cleanWardName, WARD_TO_ZONE_MAP, getZoneForWard } from '../lib/wardMapping';
 import { Filter, ChevronRight } from 'lucide-react';
 
 import AuthModal from '../components/AuthModal';
@@ -81,9 +81,7 @@ export default function Home() {
 
   // Helper to extract Zone from row.Zone or Ward_Name fallback
   const getRowZone = (row: PatientRecord) => {
-    if (row.Zone && row.Zone.trim()) return row.Zone.trim();
-    const cWard = cleanWardName(row.Ward_Name);
-    return WARD_TO_ZONE_MAP[cWard] || 'Unknown Zone';
+    return getZoneForWard(row.Ward_Name, row.Zone);
   };
 
   // Fetch live weather data for Nagpur (21.1458° N, 79.0882° E)

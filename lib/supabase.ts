@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { PatientRecord } from './types';
+import { getZoneForWard } from './wardMapping';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://oysmagibpobxsipxjzpd.supabase.co';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_JPFPIiEzvNcXFFPLLBtCRQ_jWMs1jqa';
@@ -169,13 +170,17 @@ export async function fetchPatientData(): Promise<{ data: PatientRecord[]; dataS
             if (gender.toLowerCase().startsWith('m')) gender = 'Male';
             if (gender.toLowerCase().startsWith('f')) gender = 'Female';
           }
+          const wardName = row.Ward_Name || row.ward_name || row.Ward || 'Unknown';
+          const rawZone = row.Zone || row.zone;
+          const resolvedZone = getZoneForWard(wardName, rawZone);
+
           return {
             ...row,
             Patient_ID: row.Patient_ID || row.patient_id || row.id || idx + 1,
             Patient_Name: row.Patient_Name || row.patient_name || row.Name || `Patient ${idx + 1}`,
             Disease: row.Disease || row.disease || 'Unknown',
-            Ward_Name: row.Ward_Name || row.ward_name || row.Ward || 'Unknown',
-            Zone: cleanZone(row.Zone || row.zone),
+            Ward_Name: wardName,
+            Zone: resolvedZone,
             Lat: row.Lat || row.lat || row.Latitude || row.latitude,
             Long: row.Long || row.long || row.Longitude || row.longitude,
             Status: row.Status || row.status || 'Active',
@@ -225,12 +230,16 @@ export async function fetchPatientData(): Promise<{ data: PatientRecord[]; dataS
             if (gender.toLowerCase().startsWith('f')) gender = 'Female';
           }
 
+          const csvWard = record.Ward_Name || 'Unknown';
+          const csvZone = record.Zone;
+          const resolvedCsvZone = getZoneForWard(csvWard, csvZone);
+
           records.push({
             Patient_ID: record.Patient_ID || i,
             Patient_Name: record.Patient_Name || `Patient ${i}`,
             Disease: record.Disease || 'Unknown',
-            Ward_Name: record.Ward_Name || 'Unknown',
-            Zone: cleanZone(record.Zone),
+            Ward_Name: csvWard,
+            Zone: resolvedCsvZone,
             Lat: isNaN(lat) ? undefined : lat,
             Long: isNaN(long) ? undefined : long,
             Status: record.Status || 'Active',

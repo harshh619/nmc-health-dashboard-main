@@ -46,25 +46,15 @@ export const RAW_WARD_MAPPINGS: RawWardMapping[] = [
 
 export function cleanWardName(rawWard?: string): string {
   if (!rawWard) return 'Unknown';
-  let v = String(rawWard);
+  let v = String(rawWard).trim();
   if (v.endsWith('.0')) v = v.slice(0, -2);
-  const prefixes = [
-    'Prabhag No. ',
-    'Prabhag No.',
-    'Prabhag No ',
-    'Ward No. ',
-    'Ward No.',
-    'Ward No ',
-  ];
-  prefixes.forEach((p) => {
-    v = v.replace(p, '');
-  });
+  v = v.replace(/^(prabhag|ward)\s*(no\.?)?\s*/i, '');
   v = v.trim().replace(/^0+/, '');
   return v === '' ? '0' : v;
 }
 
 export function cleanZoneName(rawZone?: string): string {
-  if (!rawZone) return 'Unknown';
+  if (!rawZone || rawZone.toUpperCase() === 'N/A' || rawZone.toUpperCase() === 'UNKNOWN') return '';
   return String(rawZone)
     .replace(/^(Zone No\.?\s*|Zone No\s*)/i, '')
     .trim();
@@ -84,3 +74,23 @@ export const WARD_TO_ZONE_MAP = WARD_MAPPING_LIST.reduce<Record<string, string>>
   },
   {}
 );
+
+export function getZoneForWard(wardName?: string, existingZone?: string): string {
+  const z = cleanZoneName(existingZone);
+  if (z) return z;
+
+  const cleanWard = cleanWardName(wardName);
+  if (cleanWard && WARD_TO_ZONE_MAP[cleanWard]) {
+    return WARD_TO_ZONE_MAP[cleanWard];
+  }
+  if (wardName && WARD_TO_ZONE_MAP[wardName]) {
+    return WARD_TO_ZONE_MAP[wardName];
+  }
+
+  const digitsOnly = String(wardName || '').replace(/\D+/g, '').replace(/^0+/, '');
+  if (digitsOnly && WARD_TO_ZONE_MAP[digitsOnly]) {
+    return WARD_TO_ZONE_MAP[digitsOnly];
+  }
+
+  return 'Unknown Zone';
+}

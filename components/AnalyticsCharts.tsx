@@ -26,29 +26,18 @@ interface AnalyticsChartsProps {
 
 // Active shape for Donut Chart hover animation
 const renderActiveShape = (props: any) => {
-  const {
-    cx,
-    cy,
-    innerRadius,
-    outerRadius,
-    startAngle,
-    endAngle,
-    fill,
-    payload,
-    value,
-  } = props;
-
+  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
   return (
     <g>
       <Sector
         cx={cx}
         cy={cy}
-        innerRadius={innerRadius - 4}
-        outerRadius={outerRadius + 8}
+        innerRadius={innerRadius - 2}
+        outerRadius={outerRadius + 6}
         startAngle={startAngle}
         endAngle={endAngle}
         fill={fill}
-        style={{ filter: 'drop-shadow(0px 4px 10px rgba(0, 0, 0, 0.3))' }}
+        style={{ filter: 'drop-shadow(0px 3px 6px rgba(0, 0, 0, 0.25))' }}
       />
     </g>
   );
@@ -281,17 +270,19 @@ export default function AnalyticsCharts({
                       onMouseLeave: () => setActiveDiseaseIndex(undefined),
                     } as any)}
                   >
-                    {diseaseData.map((entry, index) => (
+                    {diseaseData.map((entry) => (
                       <Cell
                         key={entry.name}
                         fill={diseaseColorMap[entry.name] || '#3b82f6'}
-                        className="cursor-pointer transition-all duration-300"
-                        stroke={activeDiseaseIndex === index ? '#000000' : 'transparent'}
-                        strokeWidth={activeDiseaseIndex === index ? 2 : 0}
+                        className="cursor-pointer"
                       />
                     ))}
                   </Pie>
-                  <Tooltip content={<CustomTooltip />} wrapperStyle={{ zIndex: 1000, opacity: 1 }} />
+                  <Tooltip
+                    content={<CustomTooltip />}
+                    isAnimationActive={false}
+                    wrapperStyle={{ zIndex: 1000, opacity: 1, pointerEvents: 'none' }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none z-0">
@@ -311,9 +302,9 @@ export default function AnalyticsCharts({
                     key={item.name}
                     onMouseEnter={() => setActiveDiseaseIndex(idx)}
                     onMouseLeave={() => setActiveDiseaseIndex(undefined)}
-                    className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg border cursor-pointer transition-all ${
+                    className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg border cursor-pointer transition-colors duration-150 ${
                       isHovered
-                        ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-bold border-slate-900 shadow-md scale-[1.02]'
+                        ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-bold border-slate-900 shadow-md'
                         : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-200 hover:bg-slate-100'
                     }`}
                   >
@@ -326,7 +317,7 @@ export default function AnalyticsCharts({
                     <span
                       className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold flex-shrink-0 ${
                         isHovered
-                          ? 'bg-white/20 text-white'
+                          ? 'bg-white/20 text-white dark:bg-slate-900/20 dark:text-slate-900'
                           : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
                       }`}
                     >

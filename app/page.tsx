@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { PatientRecord, WeatherData } from '../lib/types';
-import { fetchPatientData } from '../lib/supabase';
+import { fetchPatientData, supabase } from '../lib/supabase';
 import { cleanWardName, WARD_TO_ZONE_MAP, getZoneForWard } from '../lib/wardMapping';
 import { Filter, ChevronRight } from 'lucide-react';
 
@@ -113,13 +113,15 @@ export default function Home() {
   };
 
   // Fetch Patient Data & Set Default Date Window Range (Min Date ➔ Max Date/Today)
-  const loadData = async () => {
-    setIsLoading(true);
+  const loadData = async (isInitial = false) => {
+    if (isInitial) {
+      setIsLoading(true);
+    }
     const { data, dataSource: src } = await fetchPatientData();
     setPatientData(data);
     setDataSource(src);
 
-    if (data && data.length > 0) {
+    if (isInitial && data && data.length > 0) {
       const validDates = data
         .map((d) => d.Date)
         .filter((d): d is string => typeof d === 'string' && d.length === 10)
@@ -132,22 +134,45 @@ export default function Home() {
       }
     }
 
-    setIsLoading(false);
+    if (isInitial) {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
     if (typeof window !== 'undefined' && sessionStorage.getItem('nagpur_auth') === 'true') {
       setIsAuthenticated(true);
     }
-    loadData();
+    loadData(true);
     fetchWeather();
 
-    // Auto-refresh weather every 5 minutes (300,000ms)
+    // 1. Supabase Realtime Channel Subscription (Instant WebSocket push on database update)
+    const channel = supabase
+      .channel('realtime_patients_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public' },
+        () => {
+          loadData(false);
+        }
+      )
+      .subscribe();
+
+    // 2. Silent Auto-Sync Polling Interval (every 10 seconds for instant sync without page refresh)
+    const autoSyncInterval = setInterval(() => {
+      loadData(false);
+    }, 10000);
+
+    // 3. Auto-refresh weather every 5 minutes (300,000ms)
     const weatherInterval = setInterval(() => {
       fetchWeather();
     }, 300000);
 
-    return () => clearInterval(weatherInterval);
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(autoSyncInterval);
+      clearInterval(weatherInterval);
+    };
   }, []);
 
   // Filter Logic with String Date Comparison & getRowZone Fallback

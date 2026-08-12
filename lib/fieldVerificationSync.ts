@@ -22,10 +22,7 @@ export interface FieldVerificationPayload {
  * Checks if a patient record requires field verification
  */
 export function isVerificationPending(record: PatientRecord): boolean {
-  if (record.Verification_Status === 'Pending') return true;
-  if (record.Verification_Status === 'Verified') return false;
-
-  // If Lat or Long is missing or 0, or Ward is missing / 'Unassigned' -> Pending verification
+  // If Lat or Long is missing or 0, or Ward is missing / 'Unassigned' -> ALWAYS Pending verification
   const hasValidLat = typeof record.Lat === 'number' && !isNaN(record.Lat) && record.Lat !== 0;
   const hasValidLong = typeof record.Long === 'number' && !isNaN(record.Long) && record.Long !== 0;
   const hasValidWard =
@@ -34,7 +31,14 @@ export function isVerificationPending(record: PatientRecord): boolean {
     record.Ward_Name?.toLowerCase() !== 'unknown' &&
     record.Ward_Name?.trim() !== '';
 
-  return !hasValidLat || !hasValidLong || !hasValidWard;
+  if (!hasValidLat || !hasValidLong || !hasValidWard) {
+    return true;
+  }
+
+  if (record.Verification_Status === 'Pending') return true;
+  if (record.Verification_Status === 'Verified') return false;
+
+  return false;
 }
 
 const SUPABASE_SERVICE_KEY =

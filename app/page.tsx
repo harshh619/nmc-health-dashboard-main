@@ -241,7 +241,15 @@ export default function Home() {
 
       if (selectedZones.length > 0) {
         const zoneVal = getRowZone(row);
-        if (!zoneVal || !selectedZones.includes(zoneVal)) return false;
+        const isUnassigned =
+          !zoneVal ||
+          zoneVal === 'Unknown Zone' ||
+          zoneVal.toLowerCase() === 'unassigned' ||
+          zoneVal.toLowerCase() === 'unknown';
+
+        // If zone is unknown / unassigned, show to ALL zones!
+        // If zone is specified (e.g. "2 Dharampeth"), only show to concerned zone!
+        if (!isUnassigned && !selectedZones.includes(zoneVal)) return false;
       }
 
       if (

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { PatientRecord, UserSession } from '../lib/types';
 import { isVerificationPending } from '../lib/fieldVerificationSync';
+import { getZoneForWard } from '../lib/wardMapping';
 import FieldVerificationModal from './FieldVerificationModal';
 
 interface FieldTrackerWidgetProps {
@@ -30,15 +31,41 @@ export default function FieldTrackerWidget({
   const [activeTab, setActiveTab] = useState<'pending' | 'verified'>('pending');
   const [selectedPatientForVisit, setSelectedPatientForVisit] = useState<PatientRecord | null>(null);
 
-  // Filter records requiring verification
+  // Filter records requiring verification (Unassigned / Unknown Zone cases show to ALL zones)
   const pendingRecords = useMemo(() => {
-    return patientData.filter((d) => isVerificationPending(d));
-  }, [patientData]);
+    return patientData.filter((d) => {
+      if (!isVerificationPending(d)) return false;
+
+      if (userSession?.role === 'ZONE_OFFICER' && userSession.assignedZone) {
+        const zVal = getZoneForWard(d.Ward_Name, d.Zone);
+        const isUnassigned =
+          !zVal ||
+          zVal === 'Unknown Zone' ||
+          zVal.toLowerCase() === 'unassigned' ||
+          zVal.toLowerCase() === 'unknown';
+
+        if (!isUnassigned && zVal !== userSession.assignedZone) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [patientData, userSession]);
 
   // Verified records
   const verifiedRecords = useMemo(() => {
-    return patientData.filter((d) => !isVerificationPending(d));
-  }, [patientData]);
+    return patientData.filter((d) => {
+      if (isVerificationPending(d)) return false;
+
+      if (userSession?.role === 'ZONE_OFFICER' && userSession.assignedZone) {
+        const zVal = getZoneForWard(d.Ward_Name, d.Zone);
+        if (zVal && zVal !== 'Unknown Zone' && zVal !== userSession.assignedZone) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [patientData, userSession]);
 
   const activeRecords = activeTab === 'pending' ? pendingRecords : verifiedRecords;
 

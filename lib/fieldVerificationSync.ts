@@ -2,7 +2,8 @@ import { supabase } from './supabase';
 import { PatientRecord } from './types';
 
 const GOOGLE_APPS_SCRIPT_WEBHOOK_URL =
-  process.env.NEXT_PUBLIC_GOOGLE_SHEET_WEBHOOK_URL || '';
+  process.env.NEXT_PUBLIC_GOOGLE_SHEET_WEBHOOK_URL ||
+  'https://script.google.com/macros/s/AKfycbyInsC27ZOHLZgvbRV_VyuziCCmcMPZBVK4BMk6qZyBVMX2ANDUmtZVh1dzuOmN2nGadw/exec';
 
 export interface FieldVerificationPayload {
   patientId: string | number;

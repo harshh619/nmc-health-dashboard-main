@@ -1,6 +1,6 @@
-# Google Apps Script Setup Guide - Fail-Safe Bi-Directional Google Sheet Sync
+# Google Apps Script Setup Guide - Automatic Zone Auto-Fill & Bi-Directional Sync
 
-Follow this guide to enable automatic updates in your Google Sheet whenever a Zone Officer verifies a patient's **GPS Location (Lat/Long)**, **Ward (Prabhag) Name**, or **Location Photo**, and sync Google Sheet data into Supabase safely.
+Follow this guide to enable **Automatic Zone Auto-Filling from Ward/Prabhag Name** in your Google Sheet, and keep Supabase and the Live Dashboard 100% in sync.
 
 ---
 
@@ -11,17 +11,70 @@ Follow this guide to enable automatic updates in your Google Sheet whenever a Zo
 
 ---
 
-## 📝 Step 2: Paste the Master Sync Code
+## 📝 Step 2: Paste the Master Sync & Auto-Fill Script
 
-Paste the following Apps Script code into `Code.gs`:
+Replace all code in `Code.gs` with this master script:
 
 ```javascript
 // =====================================================================
 // MASTER GOOGLE SHEETS <---> SUPABASE <---> FIELD APP SYNC SCRIPT
+// WITH AUTOMATIC WARD ➔ ZONE AUTO-FILL ENGINE
 // =====================================================================
 
 var SUPABASE_URL = "https://oysmagibpobxsipxjzpd.supabase.co/rest/v1/patients_data";
 var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c21hZ2licG9ieHNpcHhqenBkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTI5NjQ5OSwiZXhwIjoyMTAwODcyNDk5fQ.POUgfgnf89TVWp46ZKIoqP3KykWgFA2jsbgMoEjMYUY";
+
+// 38-Prabhag/Ward to 10-Zone Automatic Mapping Dictionary
+var WARD_ZONE_LOOKUP = {
+  "1": "10 Mangalwari", "01": "10 Mangalwari",
+  "2": "9 AashiNagar", "02": "9 AashiNagar",
+  "3": "9 AashiNagar", "03": "9 AashiNagar",
+  "4": "8 Lakadganj", "04": "8 Lakadganj",
+  "5": "7 Satranjipura", "05": "7 Satranjipura",
+  "6": "9 AashiNagar", "06": "9 AashiNagar",
+  "7": "9 AashiNagar", "07": "9 AashiNagar",
+  "8": "6 Gandhibag", "08": "6 Gandhibag",
+  "9": "10 Mangalwari", "09": "10 Mangalwari",
+  "10": "10 Mangalwari",
+  "11": "10 Mangalwari",
+  "12": "2 Dharampeth",
+  "13": "2 Dharampeth",
+  "14": "2 Dharampeth",
+  "15": "2 Dharampeth",
+  "16": "1 Laxmi Nagar",
+  "17": "4 Dhantoli",
+  "18": "6 Gandhibag",
+  "19": "6 Gandhibag",
+  "20": "7 Satranjipura",
+  "21": "7 Satranjipura",
+  "22": "6 Gandhibag",
+  "23": "8 Lakadganj",
+  "24": "8 Lakadganj",
+  "25": "8 Lakadganj",
+  "26": "5 Nehru Nagar",
+  "27": "5 Nehru Nagar",
+  "28": "5 Nehru Nagar",
+  "29": "3 Hanuman Nagar",
+  "30": "5 Nehru Nagar",
+  "31": "3 Hanuman Nagar",
+  "32": "3 Hanuman Nagar",
+  "33": "4 Dhantoli",
+  "34": "3 Hanuman Nagar",
+  "35": "4 Dhantoli",
+  "36": "1 Laxmi Nagar",
+  "37": "1 Laxmi Nagar",
+  "38": "1 Laxmi Nagar"
+};
+
+function getZoneFromWard(w) {
+  if (!w) return "";
+  var str = String(w).trim();
+  var digits = str.replace(/\D+/g, "");
+  if (digits && WARD_ZONE_LOOKUP[digits]) {
+    return WARD_ZONE_LOOKUP[digits];
+  }
+  return "";
+}
 
 function getTargetSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -74,7 +127,7 @@ function formatSupabaseDate(val) {
 }
 
 // =====================================================================
-// 1. SUPER-FAST BULK SYNC WITH UNIFORM KEYS & DELETION CHECK
+// 1. BULK SYNC & AUTOMATIC ZONE AUTO-FILL FOR ENTIRE SHEET
 // =====================================================================
 function syncAllExistingRows() {
   var sheet = getTargetSheet();
@@ -116,16 +169,30 @@ function syncAllExistingRows() {
     var parsedId = parseInt(rawId, 10);
     var currentId = !isNaN(parsedId) ? parsedId : rawId;
 
+    var wardVal = wardCol !== -1 && rowData[wardCol] ? formatFullWardName(rowData[wardCol]) : "Unassigned";
+    var zoneVal = zoneCol !== -1 && rowData[zoneCol] ? String(rowData[zoneCol]).trim() : "";
+
+    // Automatic Zone Auto-Fill in Google Sheet if Zone is empty or Unassigned
+    if ((!zoneVal || zoneVal.toLowerCase() === "unassigned") && wardVal !== "Unassigned") {
+      var autoZ = getZoneFromWard(wardVal);
+      if (autoZ) {
+        zoneVal = autoZ;
+        if (zoneCol !== -1) {
+          sheet.getRange(i + 1, zoneCol + 1).setValue(autoZ);
+        }
+      }
+    }
+
     var item = {
       "Patient_ID": currentId,
       "Patient_Name": nameCol !== -1 && rowData[nameCol] ? String(rowData[nameCol]) : "Patient " + currentId,
       "Date": dateCol !== -1 ? formatSupabaseDate(rowData[dateCol]) : new Date().toISOString(),
       "Disease": diseaseCol !== -1 && rowData[diseaseCol] ? String(rowData[diseaseCol]) : "Unknown",
-      "Ward_Name": wardCol !== -1 && rowData[wardCol] ? formatFullWardName(rowData[wardCol]) : "Unassigned",
+      "Ward_Name": wardVal,
       "Lat": latCol !== -1 && parseFloat(rowData[latCol]) ? parseFloat(rowData[latCol]) : null,
       "Long": longCol !== -1 && parseFloat(rowData[longCol]) ? parseFloat(rowData[longCol]) : null,
       "Status": statusCol !== -1 && rowData[statusCol] ? String(rowData[statusCol]) : "Active",
-      "Zone": zoneCol !== -1 && rowData[zoneCol] ? String(rowData[zoneCol]) : null
+      "Zone": zoneVal ? zoneVal : null
     };
 
     sheetPatientIds.push(String(currentId));
@@ -186,7 +253,7 @@ function syncAllExistingRows() {
 }
 
 // =====================================================================
-// 2. REAL-TIME INSTANT SYNC ON EDIT (SAFE OVERWRITE PROTECTION)
+// 2. REAL-TIME AUTO-FILL & SYNC ON EDIT
 // =====================================================================
 function onSheetEdit(e) {
   if (!e) return;
@@ -222,6 +289,18 @@ function onSheetEdit(e) {
     var parsedId = parseInt(rawId, 10);
     var currentId = !isNaN(parsedId) ? parsedId : rawId;
 
+    var wardVal = wardCol !== -1 && rowValues[wardCol] ? formatFullWardName(rowValues[wardCol]) : "";
+    var zoneVal = zoneCol !== -1 && rowValues[zoneCol] ? String(rowValues[zoneCol]).trim() : "";
+
+    // Real-Time Auto-Fill Zone in Google Sheet if Ward is edited
+    if (range.getColumn() === wardCol + 1 && wardVal) {
+      var autoZ = getZoneFromWard(wardVal);
+      if (autoZ && zoneCol !== -1) {
+        sheet.getRange(row, zoneCol + 1).setValue(autoZ);
+        zoneVal = autoZ;
+      }
+    }
+
     var payload = {
       "Patient_ID": currentId
     };
@@ -229,11 +308,11 @@ function onSheetEdit(e) {
     if (nameCol !== -1 && rowValues[nameCol]) payload["Patient_Name"] = String(rowValues[nameCol]);
     if (dateCol !== -1 && rowValues[dateCol]) payload["Date"] = formatSupabaseDate(rowValues[dateCol]);
     if (diseaseCol !== -1 && rowValues[diseaseCol]) payload["Disease"] = String(rowValues[diseaseCol]);
-    if (wardCol !== -1 && rowValues[wardCol]) payload["Ward_Name"] = formatFullWardName(rowValues[wardCol]);
+    if (wardVal) payload["Ward_Name"] = wardVal;
     if (latCol !== -1 && parseFloat(rowValues[latCol])) payload["Lat"] = parseFloat(rowValues[latCol]);
     if (longCol !== -1 && parseFloat(rowValues[longCol])) payload["Long"] = parseFloat(rowValues[longCol]);
-    if (statusCol !== -1 && rowValues[statusCol]) payload["Status"] = String(rowValues[statusCol]);
-    if (zoneCol !== -1 && rowValues[zoneCol]) payload["Zone"] = String(rowValues[zoneCol]);
+    if (statusCol !== -1 && rowValues[statusCol]) payload["Status"] = String(rowValues[rowValues[statusCol]]);
+    if (zoneVal) payload["Zone"] = zoneVal;
 
     var supabaseUrl = SUPABASE_URL + "?on_conflict=Patient_ID";
     var options = {
@@ -284,9 +363,11 @@ function doPost(e) {
 
     if (idCol === -1) idCol = 0;
 
+    var autoZone = data.zone || getZoneFromWard(data.wardName);
+
     for (var i = 1; i < rows.length; i++) {
       if (String(rows[i][idCol]) === String(data.patientId)) {
-        if (zoneCol !== -1 && data.zone) sheet.getRange(i + 1, zoneCol + 1).setValue(data.zone);
+        if (autoZone && zoneCol !== -1) sheet.getRange(i + 1, zoneCol + 1).setValue(autoZone);
         if (wardCol !== -1 && data.wardName) sheet.getRange(i + 1, wardCol + 1).setValue(formatFullWardName(data.wardName));
         if (latCol !== -1 && data.lat) sheet.getRange(i + 1, latCol + 1).setValue(data.lat);
         if (longCol !== -1 && data.long) sheet.getRange(i + 1, longCol + 1).setValue(data.long);
@@ -307,10 +388,9 @@ function doPost(e) {
 
 ---
 
-## 🚀 Step 3: Deploy Web App
+## ⚡ How to Auto-Fill All 878 Rows Now:
 
-1. Click **Deploy** ➔ **New deployment**.
-2. Select type: **Web app**.
-3. Execute as: **Me**.
-4. Who has access: **Anyone**.
-5. Click **Deploy** and copy the **Web App URL**.
+1. Open Google Sheet ➔ **Extensions** ➔ **Apps Script**.
+2. Replace code in `Code.gs` with the snippet above and click **💾 Save**.
+3. Select function **`syncAllExistingRows`** in top dropdown menu and click **▶ Run**.
+4. **All 878 rows in your Google Sheet will auto-fill Column I (Zone) instantly!**

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Download, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PatientRecord } from '../lib/types';
 import { cleanWardName, getZoneForWard } from '../lib/wardMapping';
-import { formatDateDisplay, sortPatientRecordsById } from '../lib/supabase';
+import { formatDateDisplay, sortPatientRecordsById, formatStatusDisplay } from '../lib/supabase';
 
 interface PatientDataTableProps {
   patientData: PatientRecord[];
@@ -194,7 +194,7 @@ export default function PatientDataTable({
                           : 'bg-rose-50 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/80'
                       }`}
                     >
-                      {row.Status || 'Active'}
+                      {formatStatusDisplay(row.Status)}
                     </span>
                   </td>
                   <td className="p-3 text-slate-500 dark:text-slate-400 font-mono text-[11px]">

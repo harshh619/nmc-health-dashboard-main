@@ -4,6 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { HelpCircle, Activity, Thermometer, Droplets, CloudRain } from 'lucide-react';
 import { PatientRecord, WeatherData } from '../lib/types';
+import { formatStatusDisplay } from '../lib/supabase';
 
 interface MetricsOverviewProps {
   patientData: PatientRecord[];
@@ -203,7 +204,7 @@ export default function MetricsOverview({
                 className="bg-[#f8fafc] dark:bg-slate-800/60 border border-slate-200/90 dark:border-slate-700/80 p-3 rounded-xl shadow-xs hover:shadow transition-all"
               >
                 <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
-                  <span>Status: {status}</span>
+                  <span>Status: {formatStatusDisplay(status)}</span>
                 </div>
                 <div className="text-2xl font-black text-slate-900 dark:text-white mb-1.5">
                   {count}

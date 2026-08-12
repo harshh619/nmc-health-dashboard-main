@@ -10,6 +10,15 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const GOOGLE_SHEETS_CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vT_77OEOeI0MVDxYCbcTlq_Ld7Oq5CFSTC6LyYyAwQGyiHHSJhBvniVns4djzswkQSGNGT2_09r0LUA/pub?gid=0&single=true&output=csv';
 
+export function formatStatusDisplay(status?: string): string {
+  if (!status) return 'Active';
+  const str = String(status).trim();
+  if (str.toLowerCase() === 'death') {
+    return 'Suspected Death';
+  }
+  return str;
+}
+
 export function sortPatientRecordsById(records: PatientRecord[]): PatientRecord[] {
   return [...records].sort((a, b) => {
     const rawA = a.Patient_ID;

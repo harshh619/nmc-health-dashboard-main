@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { PatientRecord, UserSession } from '../lib/types';
 import { cleanWardName, WARD_TO_ZONE_MAP, getZoneForWard } from '../lib/wardMapping';
+import { formatStatusDisplay } from '../lib/supabase';
 
 interface SidebarFiltersProps {
   allPatientData: PatientRecord[];
@@ -182,7 +183,9 @@ export default function SidebarFilters({
                 key={item}
                 className="bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm transition-all animate-fadeIn"
               >
-                <span className="truncate max-w-[100px]">{item}</span>
+                <span className="truncate max-w-[100px]">
+                  {label === 'Patient Status' ? formatStatusDisplay(item) : item}
+                </span>
                 <X
                   className="w-3 h-3 hover:text-red-200 cursor-pointer flex-shrink-0"
                   onClick={(e) => removeTag(item, e)}
@@ -214,6 +217,7 @@ export default function SidebarFilters({
             ) : (
               filteredOptions.map((opt) => {
                 const isSelected = selected.includes(opt);
+                const displayOpt = label === 'Patient Status' ? formatStatusDisplay(opt) : opt;
                 return (
                   <div
                     key={opt}
@@ -230,7 +234,7 @@ export default function SidebarFilters({
                       onChange={() => {}}
                       className="rounded text-red-600 focus:ring-red-500 dark:bg-slate-900 dark:border-slate-700 accent-red-600 w-3.5 h-3.5"
                     />
-                    <span className="truncate">{opt}</span>
+                    <span className="truncate">{displayOpt}</span>
                   </div>
                 );
               })

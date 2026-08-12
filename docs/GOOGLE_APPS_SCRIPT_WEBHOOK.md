@@ -23,23 +23,6 @@ Paste the following Apps Script code into `Code.gs`:
 var SUPABASE_URL = "https://oysmagibpobxsipxjzpd.supabase.co/rest/v1/patients_data";
 var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c21hZ2licG9ieHNpcHhqenBkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTI5NjQ5OSwiZXhwIjoyMTAwODcyNDk5fQ.POUgfgnf89TVWp46ZKIoqP3KykWgFA2jsbgMoEjMYUY";
 
-// Whitelist of valid Supabase table columns to prevent HTTP 400 schema error
-var ALLOWED_COLUMNS = [
-  "Patient_ID",
-  "Patient_Name",
-  "Date",
-  "Disease",
-  "Ward_Name",
-  "Lat",
-  "Long",
-  "Status",
-  "Zone",
-  "Location_Photo_Url",
-  "Verification_Status",
-  "Verified_By",
-  "Verified_At"
-];
-
 function getTargetSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName("Sheet1");
@@ -47,18 +30,6 @@ function getTargetSheet() {
     sheet = ss.getActiveSheet();
   }
   return sheet;
-}
-
-// Helper: Match column header name to valid Supabase column name
-function matchColumn(headerName) {
-  if (!headerName) return null;
-  var norm = String(headerName).trim().toLowerCase().replace(/\s+/g, '_');
-  for (var i = 0; i < ALLOWED_COLUMNS.length; i++) {
-    if (ALLOWED_COLUMNS[i].toLowerCase() === norm) {
-      return ALLOWED_COLUMNS[i];
-    }
-  }
-  return null;
 }
 
 // Helper: Format Date safely for Supabase Timestamp NOT NULL column constraint
@@ -84,11 +55,11 @@ function formatSupabaseDate(val) {
       return d.toISOString();
     }
   }
-  return new Date().toISOString(); // Fallback to current timestamp to prevent HTTP 400 NOT NULL error!
+  return new Date().toISOString();
 }
 
 // =====================================================================
-// 1. SUPER-FAST BULK SYNC WITH AUTOMATIC DELETION CHECK
+// 1. SUPER-FAST BULK SYNC WITH UNIFORM KEYS & DELETION CHECK
 // =====================================================================
 function syncAllExistingRows() {
   var sheet = getTargetSheet();
@@ -99,47 +70,52 @@ function syncAllExistingRows() {
     return;
   }
 
-  var headers = rows[0];
+  var headers = rows[0].map(function(h) { return String(h).trim(); });
+
+  var idCol = -1, nameCol = -1, dateCol = -1, diseaseCol = -1, wardCol = -1, latCol = -1, longCol = -1, statusCol = -1, zoneCol = -1;
+
+  for (var h = 0; h < headers.length; h++) {
+    var norm = headers[h].toLowerCase().replace(/\s+/g, '_');
+    if (norm === "patient_id") idCol = h;
+    if (norm === "patient_name" || norm === "name") nameCol = h;
+    if (norm === "date") dateCol = h;
+    if (norm === "disease") diseaseCol = h;
+    if (norm === "ward_name" || norm === "ward") wardCol = h;
+    if (norm === "lat" || norm === "latitude") latCol = h;
+    if (norm === "long" || norm === "longitude") longCol = h;
+    if (norm === "status") statusCol = h;
+    if (norm === "zone") zoneCol = h;
+  }
+
+  if (idCol === -1) idCol = 0; // Fallback to Col A if not named Patient_ID
 
   var sheetPatientIds = [];
   var payloadArray = [];
 
   for (var i = 1; i < rows.length; i++) {
     var rowData = rows[i];
-    var payload = {};
-    var currentId = null;
+    var rawId = rowData[idCol];
 
-    for (var j = 0; j < headers.length; j++) {
-      var matchedCol = matchColumn(headers[j]);
-      var val = rowData[j];
+    if (rawId === "" || rawId === null || rawId === undefined) continue;
 
-      if (matchedCol && val !== "" && val !== null && val !== undefined) {
-        if (matchedCol === "Patient_ID") {
-          var parsedId = parseInt(val, 10);
-          currentId = !isNaN(parsedId) ? parsedId : val;
-          payload["Patient_ID"] = currentId;
-        } else if (matchedCol === "Date") {
-          payload["Date"] = formatSupabaseDate(val);
-        } else if (matchedCol === "Lat" || matchedCol === "Long") {
-          var num = parseFloat(val);
-          if (!isNaN(num)) payload[matchedCol] = num;
-        } else if (matchedCol === "Age") {
-          var num = parseInt(val, 10);
-          if (!isNaN(num)) payload[matchedCol] = num;
-        } else {
-          payload[matchedCol] = (val instanceof Date) ? val.toISOString() : val;
-        }
-      }
-    }
+    var parsedId = parseInt(rawId, 10);
+    var currentId = !isNaN(parsedId) ? parsedId : rawId;
 
-    if (!payload["Date"]) {
-      payload["Date"] = new Date().toISOString();
-    }
+    // Uniform key object initialization (Solves PostgREST PGRST102 key mismatch error!)
+    var item = {
+      "Patient_ID": currentId,
+      "Patient_Name": nameCol !== -1 && rowData[nameCol] ? String(rowData[nameCol]) : "Patient " + currentId,
+      "Date": dateCol !== -1 ? formatSupabaseDate(rowData[dateCol]) : new Date().toISOString(),
+      "Disease": diseaseCol !== -1 && rowData[diseaseCol] ? String(rowData[diseaseCol]) : "Unknown",
+      "Ward_Name": wardCol !== -1 && rowData[wardCol] ? String(rowData[wardCol]) : "Unassigned",
+      "Lat": latCol !== -1 && parseFloat(rowData[latCol]) ? parseFloat(rowData[latCol]) : null,
+      "Long": longCol !== -1 && parseFloat(rowData[longCol]) ? parseFloat(rowData[longCol]) : null,
+      "Status": statusCol !== -1 && rowData[statusCol] ? String(rowData[statusCol]) : "Active",
+      "Zone": zoneCol !== -1 && rowData[zoneCol] ? String(rowData[zoneCol]) : null
+    };
 
-    if (currentId !== null && currentId !== "") {
-      sheetPatientIds.push(String(currentId));
-      payloadArray.push(payload);
-    }
+    sheetPatientIds.push(String(currentId));
+    payloadArray.push(item);
   }
 
   var headersConfig = {
@@ -207,34 +183,43 @@ function onSheetEdit(e) {
 
   try {
     var lastCol = sheet.getLastColumn();
-    var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
     var rowValues = sheet.getRange(row, 1, 1, lastCol).getValues()[0];
 
-    var payload = {};
-    for (var i = 0; i < headers.length; i++) {
-      var matchedCol = matchColumn(headers[i]);
-      var val = rowValues[i];
+    var idCol = -1, nameCol = -1, dateCol = -1, diseaseCol = -1, wardCol = -1, latCol = -1, longCol = -1, statusCol = -1, zoneCol = -1;
 
-      if (matchedCol && val !== "" && val !== null && val !== undefined) {
-        if (matchedCol === "Patient_ID") {
-          var parsedId = parseInt(val, 10);
-          payload["Patient_ID"] = !isNaN(parsedId) ? parsedId : val;
-        } else if (matchedCol === "Date") {
-          payload["Date"] = formatSupabaseDate(val);
-        } else if (matchedCol === "Lat" || matchedCol === "Long") {
-          var num = parseFloat(val);
-          if (!isNaN(num)) payload[matchedCol] = num;
-        } else if (matchedCol === "Age") {
-          var num = parseInt(val, 10);
-          if (!isNaN(num)) payload[matchedCol] = num;
-        } else {
-          payload[matchedCol] = (val instanceof Date) ? val.toISOString() : val;
-        }
-      }
+    for (var h = 0; h < headers.length; h++) {
+      var norm = headers[h].toLowerCase().replace(/\s+/g, '_');
+      if (norm === "patient_id") idCol = h;
+      if (norm === "patient_name" || norm === "name") nameCol = h;
+      if (norm === "date") dateCol = h;
+      if (norm === "disease") diseaseCol = h;
+      if (norm === "ward_name" || norm === "ward") wardCol = h;
+      if (norm === "lat" || norm === "latitude") latCol = h;
+      if (norm === "long" || norm === "longitude") longCol = h;
+      if (norm === "status") statusCol = h;
+      if (norm === "zone") zoneCol = h;
     }
 
-    if (!payload.Patient_ID) return;
-    if (!payload.Date) payload.Date = new Date().toISOString();
+    if (idCol === -1) idCol = 0;
+    var rawId = rowValues[idCol];
+    if (rawId === "" || rawId === null || rawId === undefined) return;
+
+    var parsedId = parseInt(rawId, 10);
+    var currentId = !isNaN(parsedId) ? parsedId : rawId;
+
+    var payload = {
+      "Patient_ID": currentId
+    };
+
+    if (nameCol !== -1 && rowValues[nameCol]) payload["Patient_Name"] = String(rowValues[nameCol]);
+    if (dateCol !== -1 && rowValues[dateCol]) payload["Date"] = formatSupabaseDate(rowValues[dateCol]);
+    if (diseaseCol !== -1 && rowValues[diseaseCol]) payload["Disease"] = String(rowValues[diseaseCol]);
+    if (wardCol !== -1 && rowValues[wardCol]) payload["Ward_Name"] = String(rowValues[wardCol]);
+    if (latCol !== -1 && parseFloat(rowValues[latCol])) payload["Lat"] = parseFloat(rowValues[latCol]);
+    if (longCol !== -1 && parseFloat(rowValues[longCol])) payload["Long"] = parseFloat(rowValues[longCol]);
+    if (statusCol !== -1 && rowValues[statusCol]) payload["Status"] = String(rowValues[statusCol]);
+    if (zoneCol !== -1 && rowValues[zoneCol]) payload["Zone"] = String(rowValues[zoneCol]);
 
     var supabaseUrl = SUPABASE_URL + "?on_conflict=Patient_ID";
     var options = {
@@ -245,7 +230,7 @@ function onSheetEdit(e) {
         'Authorization': 'Bearer ' + SUPABASE_KEY,
         'Prefer': 'resolution=merge-duplicates'
       },
-      'payload': JSON.stringify(payload),
+      'payload': JSON.stringify([payload]), // Single row array
       'muteHttpExceptions': true
     };
 
@@ -268,19 +253,19 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
     var sheet = getTargetSheet();
     var rows = sheet.getDataRange().getValues();
-    var headers = rows[0];
+    var headers = rows[0].map(function(h) { return String(h).trim(); });
 
     var idCol = -1, zoneCol = -1, wardCol = -1, latCol = -1, longCol = -1, photoCol = -1, statusCol = -1;
 
     for (var h = 0; h < headers.length; h++) {
-      var m = matchColumn(headers[h]);
-      if (m === "Patient_ID") idCol = h;
-      if (m === "Zone") zoneCol = h;
-      if (m === "Ward_Name") wardCol = h;
-      if (m === "Lat") latCol = h;
-      if (m === "Long") longCol = h;
-      if (m === "Location_Photo_Url") photoCol = h;
-      if (m === "Verification_Status") statusCol = h;
+      var norm = headers[h].toLowerCase().replace(/\s+/g, '_');
+      if (norm === "patient_id") idCol = h;
+      if (norm === "zone") zoneCol = h;
+      if (norm === "ward_name" || norm === "ward") wardCol = h;
+      if (norm === "lat" || norm === "latitude") latCol = h;
+      if (norm === "long" || norm === "longitude") longCol = h;
+      if (norm === "location_photo_url") photoCol = h;
+      if (norm === "verification_status") statusCol = h;
     }
 
     if (idCol === -1) idCol = 0;

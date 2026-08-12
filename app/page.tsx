@@ -6,6 +6,7 @@ import { PatientRecord, WeatherData, UserSession } from '../lib/types';
 import { fetchPatientData, supabase } from '../lib/supabase';
 import { cleanWardName, WARD_TO_ZONE_MAP, getZoneForWard } from '../lib/wardMapping';
 import { getUserSession, clearUserSession } from '../lib/authConfig';
+import { isVerificationPending } from '../lib/fieldVerificationSync';
 import { Filter, ChevronRight } from 'lucide-react';
 
 import AuthModal from '../components/AuthModal';
@@ -15,6 +16,7 @@ import MetricsOverview from '../components/MetricsOverview';
 import AiAlertBanner from '../components/AiAlertBanner';
 import SidebarFilters from '../components/SidebarFilters';
 import PatientDataTable from '../components/PatientDataTable';
+import FieldTrackerWidget from '../components/FieldTrackerWidget';
 import Footer from '../components/Footer';
 import SkeletonLoader from '../components/SkeletonLoader';
 
@@ -64,6 +66,7 @@ export default function Home() {
   const [dataSource, setDataSource] = useState('Loading...');
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [showFieldTracker, setShowFieldTracker] = useState(true);
 
   // Weather state & live update timestamp
   const [weather, setWeather] = useState<WeatherData>({
@@ -271,6 +274,11 @@ export default function Home() {
     selectedGenders,
   ]);
 
+  // Pending verification count for active scope
+  const pendingVerificationCount = useMemo(() => {
+    return filteredData.filter((d) => isVerificationPending(d)).length;
+  }, [filteredData]);
+
   // Color Mapping for Diseases
   const diseaseColorMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -379,7 +387,18 @@ export default function Home() {
               onRefresh={loadData}
               userSession={userSession}
               onLogout={handleLogout}
+              pendingVerificationsCount={pendingVerificationCount}
+              onToggleFieldTracker={() => setShowFieldTracker(!showFieldTracker)}
             />
+
+            {/* Real-Time Field Verification & GPS/Photo Location Tracker Widget */}
+            {showFieldTracker && (
+              <FieldTrackerWidget
+                patientData={filteredData}
+                userSession={userSession}
+                onRefreshData={loadData}
+              />
+            )}
 
             {/* Active View Context & Bento Metrics Overview */}
             <MetricsOverview

@@ -10,6 +10,11 @@ export interface PatientRecord {
   Age?: number;
   Gender?: string;
   Date?: string; // ISO String or YYYY-MM-DD
+  Address?: string;
+  Verification_Status?: 'Pending' | 'Verified';
+  Location_Photo_Url?: string;
+  Verified_By?: string;
+  Verified_At?: string;
 }
 
 export interface WeatherData {

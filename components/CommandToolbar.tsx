@@ -11,6 +11,7 @@ import {
   LogOut,
   Building2,
   Crown,
+  Navigation,
 } from 'lucide-react';
 import { UserSession } from '../lib/types';
 
@@ -21,6 +22,8 @@ interface CommandToolbarProps {
   onToggleSidebar?: () => void;
   userSession?: UserSession | null;
   onLogout?: () => void;
+  pendingVerificationsCount?: number;
+  onToggleFieldTracker?: () => void;
 }
 
 export default function CommandToolbar({
@@ -28,6 +31,8 @@ export default function CommandToolbar({
   onRefresh,
   userSession,
   onLogout,
+  pendingVerificationsCount,
+  onToggleFieldTracker,
 }: CommandToolbarProps) {
   const [darkMode, setDarkMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -103,6 +108,23 @@ export default function CommandToolbar({
 
       {/* Right: Quick Action Command Buttons */}
       <div className="flex items-center gap-2">
+        {/* Field Tracker Queue Button */}
+        {onToggleFieldTracker && (
+          <button
+            onClick={onToggleFieldTracker}
+            className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
+            title="Field Location & Photo Verification Queue"
+          >
+            <Navigation className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Field Tracker</span>
+            {pendingVerificationsCount !== undefined && pendingVerificationsCount > 0 && (
+              <span className="bg-white text-amber-900 px-1.5 py-0.2 rounded-full text-[10px] font-extrabold animate-pulse">
+                {pendingVerificationsCount}
+              </span>
+            )}
+          </button>
+        )}
+
         {/* Refresh Data Button */}
         {onRefresh && (
           <button

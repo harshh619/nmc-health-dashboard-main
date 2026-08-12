@@ -32,6 +32,21 @@ function getTargetSheet() {
   return sheet;
 }
 
+// Helper: Standardize Ward Name to "Prabhag No. XX" format
+function formatFullWardName(w) {
+  if (!w) return "Unassigned";
+  var str = String(w).trim();
+  if (str.toLowerCase() === "unassigned" || str.toLowerCase() === "unknown" || str === "") {
+    return "Unassigned";
+  }
+  var digits = str.replace(/\D+/g, "");
+  if (digits) {
+    var p = digits.length === 1 ? "0" + digits : digits;
+    return "Prabhag No. " + p;
+  }
+  return str;
+}
+
 // Helper: Format Date safely for Supabase Timestamp NOT NULL column constraint
 function formatSupabaseDate(val) {
   if (val instanceof Date) {
@@ -87,7 +102,7 @@ function syncAllExistingRows() {
     if (norm === "zone") zoneCol = h;
   }
 
-  if (idCol === -1) idCol = 0; // Fallback to Col A if not named Patient_ID
+  if (idCol === -1) idCol = 0;
 
   var sheetPatientIds = [];
   var payloadArray = [];
@@ -101,13 +116,12 @@ function syncAllExistingRows() {
     var parsedId = parseInt(rawId, 10);
     var currentId = !isNaN(parsedId) ? parsedId : rawId;
 
-    // Uniform key object initialization (Solves PostgREST PGRST102 key mismatch error!)
     var item = {
       "Patient_ID": currentId,
       "Patient_Name": nameCol !== -1 && rowData[nameCol] ? String(rowData[nameCol]) : "Patient " + currentId,
       "Date": dateCol !== -1 ? formatSupabaseDate(rowData[dateCol]) : new Date().toISOString(),
       "Disease": diseaseCol !== -1 && rowData[diseaseCol] ? String(rowData[diseaseCol]) : "Unknown",
-      "Ward_Name": wardCol !== -1 && rowData[wardCol] ? String(rowData[wardCol]) : "Unassigned",
+      "Ward_Name": wardCol !== -1 && rowData[wardCol] ? formatFullWardName(rowData[wardCol]) : "Unassigned",
       "Lat": latCol !== -1 && parseFloat(rowData[latCol]) ? parseFloat(rowData[latCol]) : null,
       "Long": longCol !== -1 && parseFloat(rowData[longCol]) ? parseFloat(rowData[longCol]) : null,
       "Status": statusCol !== -1 && rowData[statusCol] ? String(rowData[statusCol]) : "Active",
@@ -215,7 +229,7 @@ function onSheetEdit(e) {
     if (nameCol !== -1 && rowValues[nameCol]) payload["Patient_Name"] = String(rowValues[nameCol]);
     if (dateCol !== -1 && rowValues[dateCol]) payload["Date"] = formatSupabaseDate(rowValues[dateCol]);
     if (diseaseCol !== -1 && rowValues[diseaseCol]) payload["Disease"] = String(rowValues[diseaseCol]);
-    if (wardCol !== -1 && rowValues[wardCol]) payload["Ward_Name"] = String(rowValues[wardCol]);
+    if (wardCol !== -1 && rowValues[wardCol]) payload["Ward_Name"] = formatFullWardName(rowValues[wardCol]);
     if (latCol !== -1 && parseFloat(rowValues[latCol])) payload["Lat"] = parseFloat(rowValues[latCol]);
     if (longCol !== -1 && parseFloat(rowValues[longCol])) payload["Long"] = parseFloat(rowValues[longCol]);
     if (statusCol !== -1 && rowValues[statusCol]) payload["Status"] = String(rowValues[statusCol]);
@@ -230,7 +244,7 @@ function onSheetEdit(e) {
         'Authorization': 'Bearer ' + SUPABASE_KEY,
         'Prefer': 'resolution=merge-duplicates'
       },
-      'payload': JSON.stringify([payload]), // Single row array
+      'payload': JSON.stringify([payload]),
       'muteHttpExceptions': true
     };
 
@@ -273,7 +287,7 @@ function doPost(e) {
     for (var i = 1; i < rows.length; i++) {
       if (String(rows[i][idCol]) === String(data.patientId)) {
         if (zoneCol !== -1 && data.zone) sheet.getRange(i + 1, zoneCol + 1).setValue(data.zone);
-        if (wardCol !== -1 && data.wardName) sheet.getRange(i + 1, wardCol + 1).setValue(data.wardName);
+        if (wardCol !== -1 && data.wardName) sheet.getRange(i + 1, wardCol + 1).setValue(formatFullWardName(data.wardName));
         if (latCol !== -1 && data.lat) sheet.getRange(i + 1, latCol + 1).setValue(data.lat);
         if (longCol !== -1 && data.long) sheet.getRange(i + 1, longCol + 1).setValue(data.long);
         if (photoCol !== -1 && data.locationPhotoUrl) sheet.getRange(i + 1, photoCol + 1).setValue(data.locationPhotoUrl);

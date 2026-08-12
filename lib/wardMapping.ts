@@ -53,6 +53,19 @@ export function cleanWardName(rawWard?: string): string {
   return v === '' ? '0' : v;
 }
 
+export function formatFullWardName(rawWard?: string | number): string {
+  if (!rawWard) return 'Unassigned';
+  const str = String(rawWard).trim();
+  if (str.toLowerCase() === 'unassigned' || str.toLowerCase() === 'unknown' || str === '') {
+    return 'Unassigned';
+  }
+  const digitsOnly = str.replace(/\D+/g, '');
+  if (digitsOnly) {
+    return `Prabhag No. ${digitsOnly.padStart(2, '0')}`;
+  }
+  return str;
+}
+
 export function cleanZoneName(rawZone?: string): string {
   if (!rawZone || rawZone.toUpperCase() === 'N/A' || rawZone.toUpperCase() === 'UNKNOWN') return '';
   return String(rawZone)

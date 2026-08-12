@@ -14,7 +14,7 @@ import {
   Activity,
 } from 'lucide-react';
 import { PatientRecord, UserSession } from '../lib/types';
-import { WARD_TO_ZONE_MAP, cleanWardName } from '../lib/wardMapping';
+import { WARD_TO_ZONE_MAP, cleanWardName, formatFullWardName } from '../lib/wardMapping';
 import { submitFieldVerification } from '../lib/fieldVerificationSync';
 
 interface FieldVerificationModalProps {
@@ -166,7 +166,7 @@ export default function FieldVerificationModal({
         patientId: patient.Patient_ID || 'N/A',
         patientName: patient.Patient_Name || 'Patient',
         zone: patient.Zone || userSession?.assignedZone || 'Unknown Zone',
-        wardName: selectedWard,
+        wardName: formatFullWardName(selectedWard),
         lat: Number(lat),
         long: Number(long),
         locationPhotoUrl: photoDataUrl,

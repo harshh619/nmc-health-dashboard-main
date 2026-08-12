@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { PatientRecord } from './types';
+import { formatFullWardName } from './wardMapping';
 
 const GOOGLE_APPS_SCRIPT_WEBHOOK_URL =
   process.env.NEXT_PUBLIC_GOOGLE_SHEET_WEBHOOK_URL ||
@@ -46,10 +47,11 @@ export async function submitFieldVerification(
 
   const pIdNum = parseInt(String(payload.patientId), 10);
   const targetPatientId = !isNaN(pIdNum) ? pIdNum : payload.patientId;
+  const formattedWard = formatFullWardName(payload.wardName);
 
   // Clean data matching valid Supabase patients_data table schema columns
   const updateData: Record<string, any> = {
-    Ward_Name: payload.wardName,
+    Ward_Name: formattedWard,
     Lat: payload.lat,
     Long: payload.long,
   };
@@ -87,7 +89,7 @@ export async function submitFieldVerification(
           patientId: payload.patientId,
           patientName: payload.patientName,
           zone: payload.zone,
-          wardName: payload.wardName,
+          wardName: formattedWard,
           lat: payload.lat,
           long: payload.long,
           locationPhotoUrl: payload.locationPhotoUrl || '',

@@ -44,19 +44,56 @@ export default function FieldVerificationModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>('');
 
-  // Get Prabhag / Ward options for this patient's zone
+  // Get Prabhag / Ward options for this patient's zone (with zone number prefix matching & 100% fail-safe fallback)
   const availableWards = React.useMemo(() => {
     const patientZone = patient.Zone || userSession?.assignedZone || '';
-    const cleanPZone = patientZone.replace(/^(Zone No\.?\s*)/i, '').trim().toLowerCase();
 
-    return Object.entries(WARD_TO_ZONE_MAP)
-      .filter(([ward, zName]) => {
-        if (!cleanPZone) return true;
-        const cleanZName = zName.replace(/^(Zone No\.?\s*)/i, '').trim().toLowerCase();
-        return cleanZName === cleanPZone || cleanZName.includes(cleanPZone);
-      })
-      .map(([ward]) => ward)
-      .sort((a, b) => Number(a) - Number(b));
+    // Extract Zone number if present (e.g. '2 Dharampeth' -> '2')
+    const numMatch = String(patientZone).match(/\d+/);
+    const zNum = numMatch ? numMatch[0] : '';
+
+    // Clean zone string for fuzzy text matching (e.g. 'dharampeth' vs 'dharmpeth')
+    const cleanInText = String(patientZone).toLowerCase().replace(/[^a-z]/g, '');
+
+    const allWardsSet = new Set<string>();
+    const matchedWardsSet = new Set<string>();
+
+    Object.entries(WARD_TO_ZONE_MAP).forEach(([wardKey, zName]) => {
+      const cleanW = cleanWardName(wardKey);
+      if (cleanW && cleanW !== 'Unknown' && cleanW !== '0') {
+        allWardsSet.add(cleanW);
+
+        if (!patientZone) {
+          matchedWardsSet.add(cleanW);
+        } else {
+          const zClean = String(zName || '').trim();
+          // Check 1: Match zone number prefix (e.g. '2' matches '2 Dharmpeth')
+          if (
+            zNum &&
+            (zClean.startsWith(zNum) ||
+              zClean.startsWith(`Zone No. ${zNum}`) ||
+              zClean.startsWith(`Zone No.${zNum}`))
+          ) {
+            matchedWardsSet.add(cleanW);
+          } else {
+            // Check 2: Fuzzy text match (e.g. 'dharampeth' vs 'dharmpeth')
+            const cleanZText = zClean.toLowerCase().replace(/[^a-z]/g, '');
+            if (
+              cleanInText &&
+              (cleanZText.includes(cleanInText) ||
+                cleanInText.includes(cleanZText) ||
+                (cleanZText.length >= 4 && cleanInText.length >= 4 && cleanZText.slice(0, 4) === cleanInText.slice(0, 4)))
+            ) {
+              matchedWardsSet.add(cleanW);
+            }
+          }
+        }
+      }
+    });
+
+    const finalSet = matchedWardsSet.size > 0 ? matchedWardsSet : allWardsSet;
+
+    return Array.from(finalSet).sort((a, b) => Number(a) - Number(b));
   }, [patient.Zone, userSession?.assignedZone]);
 
   // Handle GPS Geolocation Auto-Capture

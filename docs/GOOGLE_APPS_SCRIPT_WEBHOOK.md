@@ -25,6 +25,7 @@ function doPost(e) {
     
     // Find column indexes
     var idCol = headers.indexOf("Patient_ID");
+    var zoneCol = headers.indexOf("Zone");
     var wardCol = headers.indexOf("Ward_Name");
     var latCol = headers.indexOf("Lat");
     var longCol = headers.indexOf("Long");
@@ -35,6 +36,7 @@ function doPost(e) {
     
     for (var i = 1; i < rows.length; i++) {
       if (String(rows[i][idCol]) === String(data.patientId)) {
+        if (zoneCol !== -1 && data.zone) sheet.getRange(i + 1, zoneCol + 1).setValue(data.zone);
         if (wardCol !== -1 && data.wardName) sheet.getRange(i + 1, wardCol + 1).setValue(data.wardName);
         if (latCol !== -1 && data.lat) sheet.getRange(i + 1, latCol + 1).setValue(data.lat);
         if (longCol !== -1 && data.long) sheet.getRange(i + 1, longCol + 1).setValue(data.long);

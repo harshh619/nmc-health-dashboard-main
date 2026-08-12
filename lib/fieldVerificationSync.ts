@@ -44,15 +44,16 @@ export async function submitFieldVerification(
 ): Promise<{ success: boolean; message: string }> {
   const verifiedTimestamp = payload.verifiedAt || new Date().toISOString();
 
-  const updateData = {
+  const pIdNum = parseInt(String(payload.patientId), 10);
+  const targetPatientId = !isNaN(pIdNum) ? pIdNum : payload.patientId;
+
+  // Clean data matching valid Supabase patients_data table schema columns
+  const updateData: Record<string, any> = {
     Ward_Name: payload.wardName,
     Lat: payload.lat,
     Long: payload.long,
-    Location_Photo_Url: payload.locationPhotoUrl || '',
-    Verification_Status: 'Verified',
-    Verified_By: payload.verifiedBy,
-    Verified_At: verifiedTimestamp,
   };
+  if (payload.zone) updateData.Zone = payload.zone;
 
   let supabaseSuccess = false;
 
@@ -63,7 +64,7 @@ export async function submitFieldVerification(
       const { error } = await supabase
         .from(tableName)
         .update(updateData)
-        .eq('Patient_ID', payload.patientId);
+        .eq('Patient_ID', targetPatientId);
 
       if (!error) {
         supabaseSuccess = true;

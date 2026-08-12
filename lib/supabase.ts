@@ -264,6 +264,7 @@ export async function fetchPatientData(): Promise<{ data: PatientRecord[]; dataS
             Age: isNaN(ageVal) ? Math.floor(10 + ((i * 7) % 75)) : ageVal,
             Gender: gender,
             Date: normalizeDateString(record.Date || new Date().toISOString().split('T')[0]),
+            Verification_Status: record.Verification_Status || record.verification_status || (isNaN(lat) || isNaN(long) || csvWard.toLowerCase() === 'unassigned' ? 'Pending' : 'Verified'),
           });
         }
         return { data: sortPatientRecordsById(records), dataSource: 'Google Sheets 📊' };

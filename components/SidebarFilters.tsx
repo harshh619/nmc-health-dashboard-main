@@ -11,8 +11,9 @@ import {
   X,
   MapPin,
   ShieldCheck,
+  Lock,
 } from 'lucide-react';
-import { PatientRecord } from '../lib/types';
+import { PatientRecord, UserSession } from '../lib/types';
 import { cleanWardName, WARD_TO_ZONE_MAP, getZoneForWard } from '../lib/wardMapping';
 
 interface SidebarFiltersProps {
@@ -33,6 +34,7 @@ interface SidebarFiltersProps {
   resetAllFilters: () => void;
   dataSource: string;
   onToggleCollapse?: () => void;
+  userSession?: UserSession | null;
 }
 
 export default function SidebarFilters({
@@ -53,6 +55,7 @@ export default function SidebarFilters({
   resetAllFilters,
   dataSource,
   onToggleCollapse,
+  userSession,
 }: SidebarFiltersProps) {
   const isSupabase = dataSource.includes('Supabase');
   const [syncTime, setSyncTime] = useState('');
@@ -325,12 +328,27 @@ export default function SidebarFilters({
         />
 
         {/* Zone Filter */}
-        <Multiselect
-          label="Zone"
-          options={allZones}
-          selected={selectedZones}
-          setSelected={setSelectedZones}
-        />
+        {userSession?.role === 'ZONE_OFFICER' ? (
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+              <span>Assigned Zone</span>
+              <span className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 px-1.5 py-0.2 rounded font-extrabold flex items-center gap-1">
+                <Lock className="w-2.5 h-2.5" /> Locked
+              </span>
+            </label>
+            <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-extrabold text-blue-900 dark:text-blue-300 flex items-center gap-2">
+              <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <span>{userSession.assignedZone}</span>
+            </div>
+          </div>
+        ) : (
+          <Multiselect
+            label="Zone"
+            options={allZones}
+            selected={selectedZones}
+            setSelected={setSelectedZones}
+          />
+        )}
 
         {/* Ward Filter */}
         <Multiselect

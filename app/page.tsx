@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { PatientRecord, WeatherData } from '../lib/types';
+import { PatientRecord, WeatherData, UserSession } from '../lib/types';
 import { fetchPatientData, supabase } from '../lib/supabase';
 import { cleanWardName, WARD_TO_ZONE_MAP, getZoneForWard } from '../lib/wardMapping';
+import { getUserSession, clearUserSession } from '../lib/authConfig';
 import { Filter, ChevronRight } from 'lucide-react';
 
 import AuthModal from '../components/AuthModal';
@@ -58,6 +59,7 @@ const DISEASE_PALETTE = [
 
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userSession, setUserSessionState] = useState<UserSession | null>(null);
   const [patientData, setPatientData] = useState<PatientRecord[]>([]);
   const [dataSource, setDataSource] = useState('Loading...');
   const [isLoading, setIsLoading] = useState(true);
@@ -78,6 +80,21 @@ export default function Home() {
   const [selectedWards, setSelectedWards] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedGenders, setSelectedGenders] = useState<string[]>([]);
+
+  const handleAuthenticated = (session: UserSession) => {
+    setUserSessionState(session);
+    setIsAuthenticated(true);
+    if (session.role === 'ZONE_OFFICER' && session.assignedZone) {
+      setSelectedZones([session.assignedZone]);
+    }
+  };
+
+  const handleLogout = () => {
+    clearUserSession();
+    setUserSessionState(null);
+    setIsAuthenticated(false);
+    setSelectedZones([]);
+  };
 
   const getTodayDateString = (): string => {
     const d = new Date();
@@ -164,8 +181,13 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && sessionStorage.getItem('nagpur_auth') === 'true') {
+    const session = getUserSession();
+    if (session) {
+      setUserSessionState(session);
       setIsAuthenticated(true);
+      if (session.role === 'ZONE_OFFICER' && session.assignedZone) {
+        setSelectedZones([session.assignedZone]);
+      }
     }
     loadData(true);
     fetchWeather();
@@ -278,7 +300,11 @@ export default function Home() {
       setDateRange(['', todayStr]);
     }
     setSelectedDiseases([]);
-    setSelectedZones([]);
+    if (userSession?.role === 'ZONE_OFFICER' && userSession.assignedZone) {
+      setSelectedZones([userSession.assignedZone]);
+    } else {
+      setSelectedZones([]);
+    }
     setSelectedWards([]);
     setSelectedStatuses([]);
     setSelectedGenders([]);
@@ -288,7 +314,7 @@ export default function Home() {
     <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 font-sans relative">
       {/* Authentication Modal */}
       {!isAuthenticated && (
-        <AuthModal onAuthenticated={() => setIsAuthenticated(true)} />
+        <AuthModal onAuthenticated={handleAuthenticated} />
       )}
 
       {/* Screen Edge Floating Restore Tab Button (when sidebar is collapsed) */}
@@ -331,6 +357,7 @@ export default function Home() {
                 resetAllFilters={resetAllFilters}
                 dataSource={dataSource}
                 onToggleCollapse={() => setIsSidebarCollapsed(true)}
+                userSession={userSession}
               />
             </div>
           )}
@@ -347,7 +374,12 @@ export default function Home() {
             <HeaderBanner />
 
             {/* Command Toolbar */}
-            <CommandToolbar dataSource={dataSource} onRefresh={loadData} />
+            <CommandToolbar
+              dataSource={dataSource}
+              onRefresh={loadData}
+              userSession={userSession}
+              onLogout={handleLogout}
+            />
 
             {/* Active View Context & Bento Metrics Overview */}
             <MetricsOverview

@@ -8,18 +8,26 @@ import {
   Maximize,
   Minimize,
   RefreshCw,
+  LogOut,
+  Building2,
+  Crown,
 } from 'lucide-react';
+import { UserSession } from '../lib/types';
 
 interface CommandToolbarProps {
   dataSource: string;
   onRefresh?: () => void;
   isSidebarCollapsed?: boolean;
   onToggleSidebar?: () => void;
+  userSession?: UserSession | null;
+  onLogout?: () => void;
 }
 
 export default function CommandToolbar({
   dataSource,
   onRefresh,
+  userSession,
+  onLogout,
 }: CommandToolbarProps) {
   const [darkMode, setDarkMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -64,15 +72,31 @@ export default function CommandToolbar({
   };
 
   return (
-    <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur border border-slate-200 dark:border-slate-800 rounded-xl p-1.5 px-2.5 shadow-sm mb-1.5 flex items-center justify-between gap-3 transition-colors duration-300">
-      {/* Left: System Status Pill */}
-      <div className="flex items-center gap-2.5">
+    <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur border border-slate-200 dark:border-slate-800 rounded-xl p-1.5 px-2.5 shadow-sm mb-1.5 flex flex-wrap items-center justify-between gap-2.5 transition-colors duration-300">
+      {/* Left: System Status Pill & Active User Badge */}
+      <div className="flex items-center gap-2.5 flex-wrap">
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span>{dataSource}</span>
         </div>
 
-        <span className="hidden sm:inline-block text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+        {/* User Session Profile Badge */}
+        {userSession && (
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold border ${
+            userSession.role === 'SUPER_ADMIN'
+              ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800/60'
+              : 'bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800/60'
+          }`}>
+            {userSession.role === 'SUPER_ADMIN' ? (
+              <Crown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            ) : (
+              <Building2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            )}
+            <span>{userSession.displayName}</span>
+          </div>
+        )}
+
+        <span className="hidden lg:inline-block text-[11px] font-semibold text-slate-500 dark:text-slate-400">
           Nagpur Command Surveillance System
         </span>
       </div>
@@ -113,7 +137,7 @@ export default function CommandToolbar({
             <Maximize className="w-3.5 h-3.5" />
           )}
           <span className="hidden sm:inline">
-            {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+            {isFullscreen ? 'Exit' : 'Fullscreen'}
           </span>
         </button>
 
@@ -126,15 +150,27 @@ export default function CommandToolbar({
           {darkMode ? (
             <>
               <Sun className="w-3.5 h-3.5 text-amber-500" />
-              <span className="hidden sm:inline">Light Mode</span>
+              <span className="hidden sm:inline">Light</span>
             </>
           ) : (
             <>
               <Moon className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Dark Mode</span>
+              <span className="hidden sm:inline">Dark</span>
             </>
-          )}
+          ) }
         </button>
+
+        {/* Logout / Switch Account Button */}
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 hover:bg-rose-100 dark:hover:bg-rose-900/80 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
+            title="Logout / Switch Account"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Logout</span>
+          </button>
+        )}
       </div>
     </div>
   );

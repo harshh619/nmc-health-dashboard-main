@@ -53,3 +53,11 @@ export interface GeoJsonData {
   type: 'FeatureCollection';
   features: GeoJsonFeature[];
 }
+
+export interface UserSession {
+  username: string;
+  role: 'SUPER_ADMIN' | 'ZONE_OFFICER';
+  assignedZone: string | null;
+  displayName: string;
+}
+

@@ -245,14 +245,14 @@ export default function AnalyticsCharts({
       {/* 🟢 FOLD 1: Disease Distribution Donut & Top Wards Bar Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-[380px]">
         {/* Disease Distribution Donut Chart */}
-        <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm hover:shadow transition-all flex flex-col justify-between">
+        <div className="lg:col-span-6 xl:col-span-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-sm hover:shadow transition-all flex flex-col justify-between">
           <h3 className="text-sm font-extrabold text-slate-900 dark:text-white mb-2 flex items-center gap-1.5">
             <span>🦠</span> Disease Distribution
           </h3>
 
-          <div className="flex flex-col items-center gap-3 my-auto w-full">
-            {/* Donut Circle */}
-            <div className="relative w-48 h-48 sm:w-52 sm:h-52 flex-shrink-0 flex items-center justify-center my-1 mx-auto">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 my-auto w-full min-w-0">
+            {/* Donut Circle (Sized to fit perfectly next to legend on right side) */}
+            <div className="relative w-36 h-36 min-[400px]:w-40 min-[400px]:h-40 sm:w-44 sm:h-44 md:w-48 md:h-48 flex-shrink-0 flex items-center justify-center my-1 mx-auto sm:mx-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -260,8 +260,8 @@ export default function AnalyticsCharts({
                       data: diseaseData,
                       cx: '50%',
                       cy: '50%',
-                      innerRadius: 48,
-                      outerRadius: 76,
+                      innerRadius: 42,
+                      outerRadius: 66,
                       paddingAngle: 3,
                       dataKey: 'value',
                       activeIndex: activeDiseaseIndex,
@@ -286,13 +286,13 @@ export default function AnalyticsCharts({
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none z-0">
-                <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white leading-none">{totalCases}</span>
+                <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-none">{totalCases}</span>
                 <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mt-0.5">Cases</span>
               </div>
             </div>
 
-            {/* Spacious 2-Column Responsive Legend Grid (Zero Horizontal / Vertical Truncation) */}
-            <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-1.5 w-full mt-1">
+            {/* Side-by-Side Legend List on RIGHT side of pie chart */}
+            <div className="flex-1 w-full min-w-0 space-y-1 sm:space-y-1.5 max-h-[260px] overflow-y-auto pr-1">
               {diseaseData.map((item, idx) => {
                 const pct = ((item.value / totalCases) * 100).toFixed(1);
                 const isHovered = activeDiseaseIndex === idx;
@@ -302,7 +302,7 @@ export default function AnalyticsCharts({
                     key={item.name}
                     onMouseEnter={() => setActiveDiseaseIndex(idx)}
                     onMouseLeave={() => setActiveDiseaseIndex(undefined)}
-                    className={`flex items-center justify-between gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border cursor-pointer transition-colors duration-150 min-w-0 ${
+                    className={`flex items-center justify-between gap-1.5 text-xs px-2.5 py-1 rounded-lg border cursor-pointer transition-colors duration-150 min-w-0 ${
                       isHovered
                         ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-bold border-slate-900 shadow-md'
                         : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-200 hover:bg-slate-100'
@@ -316,7 +316,7 @@ export default function AnalyticsCharts({
                       <span className="font-bold text-[11px] truncate">{item.name}</span>
                     </div>
 
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
                       <span className="font-black text-xs">{item.value}</span>
                       <span
                         className={`text-[10px] px-1 py-0.5 rounded font-mono font-bold ${
@@ -344,7 +344,7 @@ export default function AnalyticsCharts({
         </div>
 
         {/* Top Wards by Total Case Volume */}
-        <div className="lg:col-span-7 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm hover:shadow transition-all flex flex-col justify-between">
+        <div className="lg:col-span-6 xl:col-span-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm hover:shadow transition-all flex flex-col justify-between">
           <h3 className="text-sm font-extrabold text-slate-900 dark:text-white mb-2 flex items-center gap-1.5">
             <span>🏢</span> Top Wards by Total Case Volume
           </h3>

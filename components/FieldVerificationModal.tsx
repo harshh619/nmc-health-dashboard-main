@@ -14,7 +14,7 @@ import {
   Activity,
 } from 'lucide-react';
 import { PatientRecord, UserSession } from '../lib/types';
-import { WARD_TO_ZONE_MAP, cleanWardName, formatFullWardName } from '../lib/wardMapping';
+import { WARD_TO_ZONE_MAP, cleanWardName, formatFullWardName, detectWardFromCoordinates } from '../lib/wardMapping';
 import { submitFieldVerification } from '../lib/fieldVerificationSync';
 
 interface FieldVerificationModalProps {
@@ -43,6 +43,29 @@ export default function FieldVerificationModal({
   const [gpsError, setGpsError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>('');
+  const [geoData, setGeoData] = useState<any>(null);
+
+  // Fetch GeoJSON boundary data for map point-in-polygon verification
+  useEffect(() => {
+    async function loadGeoJson() {
+      try {
+        let res = await fetch('/wards_simplified.geojson');
+        if (!res.ok) res = await fetch('/wards.geojson');
+        if (res.ok) {
+          const data = await res.json();
+          setGeoData(data);
+        }
+      } catch (err) {
+        console.warn('GeoJSON boundary load error:', err);
+      }
+    }
+    loadGeoJson();
+  }, []);
+
+  // Detect exact Prabhag/Ward number from captured GPS coordinates on map boundary
+  const detectedWardFromGps = React.useMemo(() => {
+    return detectWardFromCoordinates(Number(lat), Number(long), geoData);
+  }, [lat, long, geoData]);
 
   // Get Prabhag / Ward options for this patient's zone (with zone number prefix matching & 100% fail-safe fallback)
   const availableWards = React.useMemo(() => {
@@ -96,10 +119,10 @@ export default function FieldVerificationModal({
     return Array.from(finalSet).sort((a, b) => Number(a) - Number(b));
   }, [patient.Zone, userSession?.assignedZone]);
 
-  // Handle GPS Geolocation Auto-Capture
+  // Handle GPS Geolocation Auto-Capture & Map Ward Auto-Set
   const handleCaptureGps = () => {
     if (!navigator.geolocation) {
-      setGpsError('Geolocation is not supported by your browser/device.');
+      setGpsError('Geolocation is not supported by your browser.');
       return;
     }
 
@@ -108,10 +131,18 @@ export default function FieldVerificationModal({
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setLat(Math.round(pos.coords.latitude * 1000000) / 1000000);
-        setLong(Math.round(pos.coords.longitude * 1000000) / 1000000);
+        const cLat = Math.round(pos.coords.latitude * 1000000) / 1000000;
+        const cLong = Math.round(pos.coords.longitude * 1000000) / 1000000;
+        setLat(cLat);
+        setLong(cLong);
         setGpsAccuracy(Math.round(pos.coords.accuracy));
         setIsGettingGps(false);
+
+        // Auto-detect ward from coordinates if available
+        const autoW = detectWardFromCoordinates(cLat, cLong, geoData);
+        if (autoW) {
+          setSelectedWard(autoW);
+        }
       },
       (err) => {
         console.warn('Geolocation error:', err);
@@ -314,6 +345,38 @@ export default function FieldVerificationModal({
                 </option>
               ))}
             </select>
+
+            {/* GPS Map Boundary Verification Alert */}
+            {detectedWardFromGps && (
+              <div
+                className={`mt-2 p-2.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-colors duration-300 ${
+                  selectedWard === detectedWardFromGps
+                    ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200'
+                    : 'bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <div>
+                    <span className="font-bold block">
+                      🗺️ GPS Map Boundary Verification:
+                    </span>
+                    <span className="text-[11px] opacity-90">
+                      Coordinates map directly inside <b>Prabhag No. {detectedWardFromGps}</b>.
+                    </span>
+                  </div>
+                </div>
+                {selectedWard !== detectedWardFromGps && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedWard(detectedWardFromGps)}
+                    className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] rounded-lg shadow-sm flex items-center justify-center gap-1 transition-transform active:scale-95 cursor-pointer flex-shrink-0"
+                  >
+                    <span>Auto-Set Prabhag {detectedWardFromGps}</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Location Photo Capture & Preview */}

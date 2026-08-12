@@ -107,3 +107,49 @@ export function getZoneForWard(wardName?: string, existingZone?: string): string
 
   return 'Unknown Zone';
 }
+
+/**
+ * Ray-casting point-in-polygon algorithm
+ */
+export function isPointInPolygon(point: [number, number], polygon: [number, number][]): boolean {
+  const x = point[0], y = point[1];
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i][0], yi = polygon[i][1];
+    const xj = polygon[j][0], yj = polygon[j][1];
+
+    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+/**
+ * Detects the Prabhag/Ward number from lat/lng coordinates against GeoJSON feature polygons
+ */
+export function detectWardFromCoordinates(lat?: number, lng?: number, geoData?: any): string | null {
+  if (!lat || !lng || isNaN(lat) || isNaN(lng) || !geoData || !geoData.features) return null;
+
+  for (const feature of geoData.features) {
+    if (!feature.geometry || !feature.properties) continue;
+    const name = feature.properties.name || '';
+    const cleanW = cleanWardName(name);
+
+    const geomType = feature.geometry.type;
+    const coords = feature.geometry.coordinates;
+
+    if (geomType === 'Polygon') {
+      for (const ring of coords) {
+        if (isPointInPolygon([lng, lat], ring)) return cleanW;
+      }
+    } else if (geomType === 'MultiPolygon') {
+      for (const poly of coords) {
+        for (const ring of poly) {
+          if (isPointInPolygon([lng, lat], ring)) return cleanW;
+        }
+      }
+    }
+  }
+
+  return null;
+}

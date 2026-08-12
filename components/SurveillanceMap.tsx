@@ -28,6 +28,10 @@ export default function SurveillanceMap({
   const [geoData, setGeoData] = useState<GeoJsonData | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<L.Map | null>(null);
+  const geoJsonLayerGroupRef = useRef<L.FeatureGroup | null>(null);
+  const dataLayersGroupRef = useRef<L.FeatureGroup | null>(null);
+  const clusterGroupRef = useRef<any>(null);
+  const prevFilterStateRef = useRef<string>('');
 
   // Time-Series Playback States
   const [playbackEnabled, setPlaybackEnabled] = useState(false);
@@ -111,9 +115,9 @@ export default function SurveillanceMap({
     loadGeoJson();
   }, []);
 
-  // Initialize Leaflet map & MarkerCluster client-side
+  // Initialize Leaflet map ONCE when DOM container & GeoJSON are ready
   useEffect(() => {
-    if (typeof window === 'undefined' || !mapContainerRef.current || !geoData) return;
+    if (typeof window === 'undefined' || !mapContainerRef.current || !geoData || leafletMapRef.current) return;
 
     // Ensure L is on window before importing markercluster
     (window as any).L = L;
@@ -135,11 +139,6 @@ export default function SurveillanceMap({
         'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
     });
 
-    if (leafletMapRef.current) {
-      leafletMapRef.current.remove();
-      leafletMapRef.current = null;
-    }
-
     const savedLat = sessionStorage.getItem('mapLat');
     const savedLng = sessionStorage.getItem('mapLng');
     const savedZoom = sessionStorage.getItem('mapZoom');
@@ -147,8 +146,6 @@ export default function SurveillanceMap({
     const initialLat = savedLat ? parseFloat(savedLat) : 21.142;
     const initialLng = savedLng ? parseFloat(savedLng) : 79.082;
     const initialZoom = savedZoom ? parseFloat(savedZoom) : 11.7;
-
-    if (!mapContainerRef.current) return;
 
     const map = L.map(mapContainerRef.current, {
       center: [initialLat, initialLng],
@@ -158,37 +155,6 @@ export default function SurveillanceMap({
     });
 
     leafletMapRef.current = map;
-
-    // Invalidate map size on initial load and resize to ensure 100% full-width tile coverage
-    setTimeout(() => {
-      map.invalidateSize();
-    }, 200);
-    setTimeout(() => {
-      map.invalidateSize();
-    }, 600);
-
-    // Debounced ResizeObserver to automatically trigger invalidateSize when container resizes
-    let resizeTimer: any = null;
-    const resizeObserver = new ResizeObserver(() => {
-      if (resizeTimer) clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        if (leafletMapRef.current) {
-          leafletMapRef.current.invalidateSize();
-        }
-      }, 200);
-    });
-
-    if (mapContainerRef.current) {
-      resizeObserver.observe(mapContainerRef.current);
-    }
-
-    // Anti-reset memory listener
-    map.on('moveend zoomend', () => {
-      const center = map.getCenter();
-      sessionStorage.setItem('mapLat', center.lat.toString());
-      sessionStorage.setItem('mapLng', center.lng.toString());
-      sessionStorage.setItem('mapZoom', map.getZoom().toString());
-    });
 
     // Tile Layers
     const cartoDb = L.tileLayer(
@@ -237,6 +203,67 @@ export default function SurveillanceMap({
 
     map.addControl(new CenterControl());
     L.control.zoom({ position: 'topright' }).addTo(map);
+
+    // Persistent Layer Groups for zero-flicker updates
+    geoJsonLayerGroupRef.current = L.featureGroup().addTo(map);
+    dataLayersGroupRef.current = L.featureGroup().addTo(map);
+
+    if (typeof (L as any).markerClusterGroup === 'function') {
+      clusterGroupRef.current = (L as any).markerClusterGroup({
+        chunkedLoading: true,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true,
+        maxClusterRadius: 45,
+      });
+      map.addLayer(clusterGroupRef.current);
+    }
+
+    setTimeout(() => map.invalidateSize(), 200);
+
+    let resizeTimer: any = null;
+    const resizeObserver = new ResizeObserver(() => {
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (leafletMapRef.current) {
+          leafletMapRef.current.invalidateSize();
+        }
+      }, 200);
+    });
+
+    if (mapContainerRef.current) {
+      resizeObserver.observe(mapContainerRef.current);
+    }
+
+    map.on('moveend zoomend', () => {
+      const center = map.getCenter();
+      sessionStorage.setItem('mapLat', center.lat.toString());
+      sessionStorage.setItem('mapLng', center.lng.toString());
+      sessionStorage.setItem('mapZoom', map.getZoom().toString());
+    });
+
+    return () => {
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeObserver.disconnect();
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove();
+        leafletMapRef.current = null;
+      }
+    };
+  }, [geoData]);
+
+  // Silent In-Place Layer Rendering
+  useEffect(() => {
+    const map = leafletMapRef.current;
+    if (!map || !geoData) return;
+
+    const geoGroup = geoJsonLayerGroupRef.current;
+    const dataGroup = dataLayersGroupRef.current;
+    const clusterGroup = clusterGroupRef.current;
+
+    if (geoGroup) geoGroup.clearLayers();
+    if (dataGroup) dataGroup.clearLayers();
+    if (clusterGroup) clusterGroup.clearLayers();
 
     // Ward Case Counts
     const cleanWardCounts: Record<string, number> = {};
@@ -295,10 +322,12 @@ export default function SurveillanceMap({
           { sticky: true }
         );
       },
-    }).addTo(map);
+    });
 
-    // High-Contrast Sleek Prabhag Name Pill Badges (Rendered ONLY during Epidemic Outbreak Playback!)
-    if (playbackEnabled && geoData && Array.isArray(geoData.features)) {
+    if (geoGroup) geoGroup.addLayer(geoJsonLayer);
+
+    // High-Contrast Sleek Prabhag Name Pill Badges
+    if (playbackEnabled && geoData && Array.isArray(geoData.features) && dataGroup) {
       geoData.features.forEach((feature) => {
         const cleanW = cleanWardName(feature.properties?.name);
         const count = cleanWardCounts[cleanW] || 0;
@@ -329,7 +358,8 @@ export default function SurveillanceMap({
               </div>`,
             });
 
-            L.marker([cLat, cLon], { icon: wardLabelIcon, interactive: false }).addTo(map);
+            const marker = L.marker([cLat, cLon], { icon: wardLabelIcon, interactive: false });
+            dataGroup.addLayer(marker);
           }
         }
       });
@@ -348,22 +378,18 @@ export default function SurveillanceMap({
       return `
         <div style="font-family: Inter, sans-serif; font-size: 11px; width: 170px;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px;">
-            <span style="font-weight: 700; color: ${color}; font-size: 12px;">${disease}</span>
-            <span style="background: #f1f5f9; color: #475569; padding: 1px 4px; border-radius: 3px; font-size: 9px; font-weight: 600;">${row.Status || 'Active'}</span>
+            <span style="font-weight: 800; font-size: 12px; color: #0f172a;">${row.Patient_Name || 'Patient'}</span>
+            <span style="background: ${color}; color: #fff; padding: 1px 5px; border-radius: 4px; font-size: 9px; font-weight: 700;">${disease}</span>
           </div>
-          <div style="color: #334155; font-size: 11px; font-weight: 600; margin-bottom: 1px;">${row.Patient_Name || 'N/A'}</div>
-          <div style="color: #64748b; font-size: 10px; margin-bottom: 5px;">Prabhag / Ward ${cleanWardName(row.Ward_Name)}</div>
-          
-          <div style="display: flex; items-center; gap: 3px; border-top: 1px solid #f1f5f9; padding-top: 5px;">
-            <a href="${gMapsUrl}" target="_blank" rel="noopener noreferrer" style="flex: 1; background: #2563eb; color: white; text-decoration: none; padding: 3px 0; border-radius: 4px; font-size: 10px; font-weight: 600; text-align: center; display: flex; align-items: center; justify-content: center; gap: 2px;">
-              📍 Maps
-            </a>
-            <a href="${waUrl}" target="_blank" rel="noopener noreferrer" style="flex: 1; background: #16a34a; color: white; text-decoration: none; padding: 3px 0; border-radius: 4px; font-size: 10px; font-weight: 600; text-align: center; display: flex; align-items: center; justify-content: center; gap: 2px;">
-              💬 Share
-            </a>
-            <button onclick="navigator.clipboard.writeText('${gMapsUrl}'); this.innerText='✓';" title="Copy Link" style="width: 24px; background: #f8fafc; border: 1px solid #cbd5e1; color: #475569; border-radius: 4px; font-size: 10px; cursor: pointer; text-align: center;">
-              📋
-            </button>
+          <div style="color: #475569; font-size: 10px; margin-bottom: 4px;">
+            <div>Ward: <b>Prabhag ${cleanWardName(row.Ward_Name)}</b></div>
+            <div>Zone: <b>${row.Zone || 'Unknown Zone'}</b></div>
+            <div>Date: <b>${formatDateDisplay(row.Date)}</b></div>
+            <div>Status: <b style="color: ${row.Status === 'Recovered' ? '#059669' : row.Status === 'Deceased' ? '#dc2626' : '#d97706'}">${row.Status || 'Active'}</b></div>
+          </div>
+          <div style="display: flex; gap: 4px; margin-top: 4px;">
+            <a href="${gMapsUrl}" target="_blank" style="flex: 1; text-align: center; background: #2563eb; color: #fff; padding: 3px 0; border-radius: 4px; font-size: 9px; font-weight: 700; text-decoration: none;">📍 Google Maps</a>
+            <a href="${waUrl}" target="_blank" style="flex: 1; text-align: center; background: #16a34a; color: #fff; padding: 3px 0; border-radius: 4px; font-size: 9px; font-weight: 700; text-decoration: none;">💬 WhatsApp</a>
           </div>
         </div>
       `;
@@ -371,20 +397,7 @@ export default function SurveillanceMap({
 
     // Render View Modes
     if (mapMode === 'Patient Cluster View') {
-      if (typeof (L as any).markerClusterGroup === 'function') {
-        const markerClusterGroup = (L as any).markerClusterGroup({
-          showCoverageOnHover: false,
-          zoomToBoundsOnClick: true,
-          spiderfyOnMaxZoom: true,
-          polygonOptions: {
-            stroke: false,
-            fill: false,
-            opacity: 0,
-            fillOpacity: 0,
-          },
-        });
-
-        // Slice to top 15,000 point markers for Leaflet canvas performance
+      if (clusterGroup) {
         filteredPatientData.slice(0, 15000).forEach((row) => {
           if (row.Lat && row.Long) {
             const disease = row.Disease || 'Unknown';
@@ -399,32 +412,12 @@ export default function SurveillanceMap({
               fillOpacity: 0.9,
             }).bindPopup(popupHtml);
 
-            markerClusterGroup.addLayer(marker);
-          }
-        });
-        map.addLayer(markerClusterGroup);
-      } else {
-        // Fallback to direct circle markers if markercluster is unavailable
-        filteredPatientData.slice(0, 5000).forEach((row) => {
-          if (row.Lat && row.Long) {
-            const disease = row.Disease || 'Unknown';
-            const color = diseaseColorMap[disease] || '#2563eb';
-            const popupHtml = createPatientPopupContent(row);
-
-            L.circleMarker([row.Lat, row.Long], {
-              radius: 6,
-              fillColor: color,
-              color: '#ffffff',
-              weight: 1,
-              fillOpacity: 0.9,
-            })
-              .bindPopup(popupHtml)
-              .addTo(map);
+            clusterGroup.addLayer(marker);
           }
         });
       }
     } else if (mapMode === 'Ward-wise Exact Count View') {
-      if (geoData && Array.isArray(geoData.features)) {
+      if (geoData && Array.isArray(geoData.features) && dataGroup) {
         geoData.features.forEach((feature) => {
           const cleanW = cleanWardName(feature.properties?.name);
           const count = cleanWardCounts[cleanW] || 0;
@@ -457,68 +450,55 @@ export default function SurveillanceMap({
                 }; border:2.5px solid #ffffff; color:#ffffff; font-weight:800; font-size:${fontSize}px; width:${size}px; height:${size}px; min-width:${size}px; min-height:${size}px; border-radius:9999px; display:flex; align-items:center; justify-content:center; text-align:center; box-shadow:0 4px 12px rgba(0,0,0,0.5); white-space:nowrap; padding:0 3px; box-sizing:border-box;">${count.toLocaleString()}</div>`,
               });
 
-              L.marker([cLat, cLon], { icon: badgeIcon })
+              const badgeMarker = L.marker([cLat, cLon], { icon: badgeIcon })
                 .bindTooltip(
                   `<div style="font-family: Inter, sans-serif;"><b>Prabhag / Ward ${cleanW}</b>: ${count} Cases</div>`
-                )
-                .addTo(map);
+                );
+
+              dataGroup.addLayer(badgeMarker);
             }
           }
         });
       }
     } else if (mapMode === 'All Cases Points View') {
-      // Slice to top 15,000 point markers for Leaflet canvas performance
-      filteredPatientData.slice(0, 15000).forEach((row) => {
-        if (row.Lat && row.Long) {
-          const disease = row.Disease || 'Unknown';
-          const color = diseaseColorMap[disease] || '#2563eb';
-          const popupHtml = createPatientPopupContent(row);
+      if (dataGroup) {
+        filteredPatientData.slice(0, 15000).forEach((row) => {
+          if (row.Lat && row.Long) {
+            const disease = row.Disease || 'Unknown';
+            const color = diseaseColorMap[disease] || '#2563eb';
+            const popupHtml = createPatientPopupContent(row);
 
-          L.circleMarker([row.Lat, row.Long], {
-            radius: 6,
-            fillColor: color,
-            color: '#ffffff',
-            weight: 1,
-            fillOpacity: 0.9,
-          })
-            .bindPopup(popupHtml)
-            .addTo(map);
-        }
-      });
-    }
+            const ptMarker = L.circleMarker([row.Lat, row.Long], {
+              radius: 6,
+              fillColor: color,
+              color: '#ffffff',
+              weight: 1,
+              fillOpacity: 0.9,
+            }).bindPopup(popupHtml);
 
-    // Auto-fit map viewport to active filtered features / points
-    const activeBounds = L.latLngBounds([]);
-
-    filteredPatientData.forEach((row) => {
-      if (row.Lat && row.Long && !isNaN(Number(row.Lat)) && !isNaN(Number(row.Long))) {
-        activeBounds.extend([Number(row.Lat), Number(row.Long)]);
-      }
-    });
-
-    if (geoJsonLayer) {
-      geoJsonLayer.eachLayer((layer: any) => {
-        if (layer.feature) {
-          const cleanW = cleanWardName(layer.feature.properties?.name);
-          if (cleanWardCounts[cleanW] > 0 && typeof layer.getBounds === 'function') {
-            const b = layer.getBounds();
-            if (b && b.isValid()) {
-              activeBounds.extend(b);
-            }
+            dataGroup.addLayer(ptMarker);
           }
+        });
+      }
+    }
+
+    // Auto-fit bounds
+    const currentFilterKey = `${selectedWards.join(',')}_${mapMode}_${playbackEnabled}`;
+    if (prevFilterStateRef.current !== currentFilterKey) {
+      prevFilterStateRef.current = currentFilterKey;
+
+      const activeBounds = L.latLngBounds([]);
+      filteredPatientData.forEach((row) => {
+        if (row.Lat && row.Long && !isNaN(Number(row.Lat)) && !isNaN(Number(row.Long))) {
+          activeBounds.extend([Number(row.Lat), Number(row.Long)]);
         }
       });
-    }
 
-    if (activeBounds.isValid() && filteredPatientData.length > 0) {
-      map.fitBounds(activeBounds, { padding: [40, 40], maxZoom: 14, animate: true });
+      if (activeBounds.isValid() && filteredPatientData.length > 0 && !sessionStorage.getItem('mapLat')) {
+        map.fitBounds(activeBounds, { padding: [40, 40], maxZoom: 14, animate: true });
+      }
     }
-
-    return () => {
-      if (resizeTimer) clearTimeout(resizeTimer);
-      resizeObserver.disconnect();
-    };
-  }, [geoData, filteredPatientData, mapMode, diseaseColorMap, playbackEnabled]);
+  }, [geoData, filteredPatientData, mapMode, diseaseColorMap, playbackEnabled, selectedWards]);
 
   // Disease Counts for Legend
   const diseaseLegendList = React.useMemo(() => {

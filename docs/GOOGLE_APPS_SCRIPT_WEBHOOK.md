@@ -1,29 +1,256 @@
 # Google Apps Script Setup Guide - Bi-Directional Google Sheet Sync
 
-Follow this guide to enable automatic updates in your Google Sheet whenever a Zone Officer verifies a patient's **GPS Location (Lat/Long)**, **Ward (Prabhag) Name**, or **Location Photo**.
+Follow this guide to enable automatic updates in your Google Sheet whenever a Zone Officer verifies a patient's **GPS Location (Lat/Long)**, **Ward (Prabhag) Name**, or **Location Photo**, and sync Google Sheet data into Supabase safely.
 
 ---
 
 ## 🛠️ Step 1: Open Google Apps Script Editor
 
-1. Open your Google Sheet: [NMC Health Dashboard Sheet](https://docs.google.com/spreadsheets/d/11Aug_nmc_health_dashboard/edit)
+1. Open your Google Sheet
 2. Click **Extensions** ➔ **Apps Script**.
 
 ---
 
-## 📝 Step 2: Paste the Sync Webhook Code
+## 📝 Step 2: Paste the Master Sync Code
 
 Paste the following Apps Script code into `Code.gs`:
 
 ```javascript
+// =====================================================================
+// MASTER GOOGLE SHEETS <---> SUPABASE <---> FIELD APP SYNC SCRIPT
+// =====================================================================
+
+var SUPABASE_URL = "https://oysmagibpobxsipxjzpd.supabase.co/rest/v1/patients_data";
+var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c21hZ2licG9ieHNpcHhqenBkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTI5NjQ5OSwiZXhwIjoyMTAwODcyNDk5fQ.POUgfgnf89TVWp46ZKIoqP3KykWgFA2jsbgMoEjMYUY";
+
+function getTargetSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Sheet1");
+  if (!sheet) {
+    sheet = ss.getActiveSheet();
+  }
+  return sheet;
+}
+
+// Helper: Format Date safely for Supabase Timestamp NOT NULL column constraint
+function formatSupabaseDate(val) {
+  if (val instanceof Date) {
+    return val.toISOString();
+  }
+  if (val && typeof val === 'string' && val.trim() !== "") {
+    var str = val.trim();
+    var parts = str.split(/[\/\-]/);
+    if (parts.length === 3) {
+      var p0 = parseInt(parts[0], 10);
+      var p1 = parseInt(parts[1], 10);
+      var p2 = parseInt(parts[2], 10);
+      if (!isNaN(p2) && p2 > 1000) {
+        var mm = String(Math.min(Math.max(p1, 1), 12)).padStart(2, '0');
+        var dd = String(Math.min(Math.max(p0, 1), 31)).padStart(2, '0');
+        return p2 + "-" + mm + "-" + dd + "T00:00:00.000Z";
+      }
+    }
+    var d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString();
+    }
+  }
+  return new Date().toISOString(); // Fallback to current timestamp to prevent HTTP 400 NOT NULL error!
+}
+
+// =====================================================================
+// 1. SUPER-FAST BULK SYNC WITH AUTOMATIC DELETION CHECK
+// =====================================================================
+function syncAllExistingRows() {
+  var sheet = getTargetSheet();
+  var rows = sheet.getDataRange().getValues();
+
+  if (rows.length <= 1) {
+    Logger.log("Sheet is empty!");
+    return;
+  }
+
+  var headers = rows[0];
+  var patientIdIndex = headers.indexOf("Patient_ID");
+
+  if (patientIdIndex === -1) {
+    Logger.log("Error: 'Patient_ID' column not found in headers!");
+    return;
+  }
+
+  var sheetPatientIds = [];
+  var payloadArray = [];
+
+  for (var i = 1; i < rows.length; i++) {
+    var rowData = rows[i];
+    var payload = {};
+    var currentId = null;
+
+    for (var j = 0; j < headers.length; j++) {
+      var colName = String(headers[j]).trim();
+      var val = rowData[j];
+
+      if (colName === "Patient_ID") {
+        var parsedId = parseInt(val, 10);
+        currentId = !isNaN(parsedId) ? parsedId : val;
+        payload["Patient_ID"] = currentId;
+      } else if (colName === "Date") {
+        payload["Date"] = formatSupabaseDate(val);
+      } else if (colName === "Lat" || colName === "Long") {
+        var num = parseFloat(val);
+        if (!isNaN(num) && val !== "" && val !== null) {
+          payload[colName] = num;
+        }
+      } else if (colName === "Age") {
+        var num = parseInt(val, 10);
+        if (!isNaN(num) && val !== "" && val !== null) {
+          payload[colName] = num;
+        }
+      } else if (val !== "" && val !== null && val !== undefined) {
+        payload[colName] = (val instanceof Date) ? val.toISOString() : val;
+      }
+    }
+
+    if (!payload["Date"]) {
+      payload["Date"] = new Date().toISOString();
+    }
+
+    if (currentId !== null && currentId !== "") {
+      sheetPatientIds.push(String(currentId));
+      payloadArray.push(payload);
+    }
+  }
+
+  var headersConfig = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json',
+    'Range': '0-100000'
+  };
+
+  try {
+    var getOptions = {
+      'method': 'get',
+      'headers': headersConfig,
+      'muteHttpExceptions': true
+    };
+    var getResponse = UrlFetchApp.fetch(SUPABASE_URL + "?select=Patient_ID", getOptions);
+    var supabaseData = JSON.parse(getResponse.getContentText());
+
+    var supabaseIds = (Array.isArray(supabaseData) ? supabaseData : []).map(function(row) {
+      return String(row.Patient_ID);
+    });
+
+    var idsToDelete = supabaseIds.filter(function(id) {
+      return sheetPatientIds.indexOf(id) === -1;
+    });
+
+    if (idsToDelete.length > 0) {
+      var deleteUrl = SUPABASE_URL + "?Patient_ID=in.(" + idsToDelete.join(",") + ")";
+      var deleteOptions = {
+        'method': 'delete',
+        'headers': headersConfig,
+        'muteHttpExceptions': true
+      };
+      UrlFetchApp.fetch(deleteUrl, deleteOptions);
+      Logger.log("Deleted " + idsToDelete.length + " rows from Supabase.");
+    }
+
+    if (payloadArray.length > 0) {
+      var upsertUrl = SUPABASE_URL + "?on_conflict=Patient_ID";
+      var upsertOptions = {
+        'method': 'post',
+        'headers': Object.assign({}, headersConfig, {'Prefer': 'resolution=merge-duplicates'}),
+        'payload': JSON.stringify(payloadArray),
+        'muteHttpExceptions': true
+      };
+      var upsertResponse = UrlFetchApp.fetch(upsertUrl, upsertOptions);
+      Logger.log("Bulk Sync Response Code: " + upsertResponse.getResponseCode());
+      Logger.log("Bulk Sync Response Body: " + upsertResponse.getContentText());
+    }
+
+  } catch (err) {
+    Logger.log("Bulk Sync Error: " + err.toString());
+  }
+}
+
+// =====================================================================
+// 2. REAL-TIME INSTANT SYNC ON EDIT (SAFE OVERWRITE PROTECTION)
+// =====================================================================
+function onSheetEdit(e) {
+  if (!e) return;
+  var range = e.range;
+  var sheet = range.getSheet();
+  var row = range.getRow();
+  if (row === 1) return;
+
+  try {
+    var lastCol = sheet.getLastColumn();
+    var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    var rowValues = sheet.getRange(row, 1, 1, lastCol).getValues()[0];
+
+    var payload = {};
+    for (var i = 0; i < headers.length; i++) {
+      var colName = String(headers[i]).trim();
+      var val = rowValues[i];
+
+      if (colName === "Patient_ID") {
+        var parsedId = parseInt(val, 10);
+        payload["Patient_ID"] = !isNaN(parsedId) ? parsedId : val;
+      } else if (colName === "Date") {
+        payload["Date"] = formatSupabaseDate(val);
+      } else if (colName === "Lat" || colName === "Long") {
+        var num = parseFloat(val);
+        if (!isNaN(num) && val !== "" && val !== null) {
+          payload[colName] = num;
+        }
+      } else if (colName === "Age") {
+        var num = parseInt(val, 10);
+        if (!isNaN(num) && val !== "" && val !== null) {
+          payload[colName] = num;
+        }
+      } else if (val !== "" && val !== null && val !== undefined) {
+        payload[colName] = (val instanceof Date) ? val.toISOString() : val;
+      }
+    }
+
+    if (!payload.Patient_ID) return;
+    if (!payload.Date) payload.Date = new Date().toISOString();
+
+    var supabaseUrl = SUPABASE_URL + "?on_conflict=Patient_ID";
+    var options = {
+      'method': 'post',
+      'contentType': 'application/json',
+      'headers': {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      'payload': JSON.stringify(payload),
+      'muteHttpExceptions': true
+    };
+
+    var res = UrlFetchApp.fetch(supabaseUrl, options);
+    Logger.log("OnEdit Response: " + res.getResponseCode() + " " + res.getContentText());
+  } catch (err) {
+    Logger.log("Real-time Edit Sync Error: " + err.toString());
+  }
+}
+
+function onEdit(e) {
+  onSheetEdit(e);
+}
+
+// =====================================================================
+// 3. RECEIVE FIELD VERIFICATION FROM APP AND UPDATE GOOGLE SHEET
+// =====================================================================
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var sheet = getTargetSheet();
     var rows = sheet.getDataRange().getValues();
     var headers = rows[0];
-    
-    // Find column indexes
+
     var idCol = headers.indexOf("Patient_ID");
     var zoneCol = headers.indexOf("Zone");
     var wardCol = headers.indexOf("Ward_Name");
@@ -31,9 +258,9 @@ function doPost(e) {
     var longCol = headers.indexOf("Long");
     var photoCol = headers.indexOf("Location_Photo_Url");
     var statusCol = headers.indexOf("Verification_Status");
-    
-    if (idCol === -1) idCol = 0; // Default to Column A if header not exact
-    
+
+    if (idCol === -1) idCol = 0;
+
     for (var i = 1; i < rows.length; i++) {
       if (String(rows[i][idCol]) === String(data.patientId)) {
         if (zoneCol !== -1 && data.zone) sheet.getRange(i + 1, zoneCol + 1).setValue(data.zone);
@@ -45,7 +272,7 @@ function doPost(e) {
         break;
       }
     }
-    
+
     return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
@@ -64,4 +291,3 @@ function doPost(e) {
 3. Execute as: **Me**.
 4. Who has access: **Anyone**.
 5. Click **Deploy** and copy the **Web App URL**.
-6. Set `NEXT_PUBLIC_GOOGLE_SHEET_WEBHOOK_URL` in `.env.local` or Vercel Environment Variables.

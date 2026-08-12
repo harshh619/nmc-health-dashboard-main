@@ -1,4 +1,4 @@
-# Google Apps Script Setup Guide - Bi-Directional Google Sheet Sync
+# Google Apps Script Setup Guide - Fail-Safe Bi-Directional Google Sheet Sync
 
 Follow this guide to enable automatic updates in your Google Sheet whenever a Zone Officer verifies a patient's **GPS Location (Lat/Long)**, **Ward (Prabhag) Name**, or **Location Photo**, and sync Google Sheet data into Supabase safely.
 
@@ -23,6 +23,23 @@ Paste the following Apps Script code into `Code.gs`:
 var SUPABASE_URL = "https://oysmagibpobxsipxjzpd.supabase.co/rest/v1/patients_data";
 var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c21hZ2licG9ieHNpcHhqenBkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTI5NjQ5OSwiZXhwIjoyMTAwODcyNDk5fQ.POUgfgnf89TVWp46ZKIoqP3KykWgFA2jsbgMoEjMYUY";
 
+// Whitelist of valid Supabase table columns to prevent HTTP 400 schema error
+var ALLOWED_COLUMNS = [
+  "Patient_ID",
+  "Patient_Name",
+  "Date",
+  "Disease",
+  "Ward_Name",
+  "Lat",
+  "Long",
+  "Status",
+  "Zone",
+  "Location_Photo_Url",
+  "Verification_Status",
+  "Verified_By",
+  "Verified_At"
+];
+
 function getTargetSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName("Sheet1");
@@ -30,6 +47,18 @@ function getTargetSheet() {
     sheet = ss.getActiveSheet();
   }
   return sheet;
+}
+
+// Helper: Match column header name to valid Supabase column name
+function matchColumn(headerName) {
+  if (!headerName) return null;
+  var norm = String(headerName).trim().toLowerCase().replace(/\s+/g, '_');
+  for (var i = 0; i < ALLOWED_COLUMNS.length; i++) {
+    if (ALLOWED_COLUMNS[i].toLowerCase() === norm) {
+      return ALLOWED_COLUMNS[i];
+    }
+  }
+  return null;
 }
 
 // Helper: Format Date safely for Supabase Timestamp NOT NULL column constraint
@@ -71,12 +100,6 @@ function syncAllExistingRows() {
   }
 
   var headers = rows[0];
-  var patientIdIndex = headers.indexOf("Patient_ID");
-
-  if (patientIdIndex === -1) {
-    Logger.log("Error: 'Patient_ID' column not found in headers!");
-    return;
-  }
 
   var sheetPatientIds = [];
   var payloadArray = [];
@@ -87,27 +110,25 @@ function syncAllExistingRows() {
     var currentId = null;
 
     for (var j = 0; j < headers.length; j++) {
-      var colName = String(headers[j]).trim();
+      var matchedCol = matchColumn(headers[j]);
       var val = rowData[j];
 
-      if (colName === "Patient_ID") {
-        var parsedId = parseInt(val, 10);
-        currentId = !isNaN(parsedId) ? parsedId : val;
-        payload["Patient_ID"] = currentId;
-      } else if (colName === "Date") {
-        payload["Date"] = formatSupabaseDate(val);
-      } else if (colName === "Lat" || colName === "Long") {
-        var num = parseFloat(val);
-        if (!isNaN(num) && val !== "" && val !== null) {
-          payload[colName] = num;
+      if (matchedCol && val !== "" && val !== null && val !== undefined) {
+        if (matchedCol === "Patient_ID") {
+          var parsedId = parseInt(val, 10);
+          currentId = !isNaN(parsedId) ? parsedId : val;
+          payload["Patient_ID"] = currentId;
+        } else if (matchedCol === "Date") {
+          payload["Date"] = formatSupabaseDate(val);
+        } else if (matchedCol === "Lat" || matchedCol === "Long") {
+          var num = parseFloat(val);
+          if (!isNaN(num)) payload[matchedCol] = num;
+        } else if (matchedCol === "Age") {
+          var num = parseInt(val, 10);
+          if (!isNaN(num)) payload[matchedCol] = num;
+        } else {
+          payload[matchedCol] = (val instanceof Date) ? val.toISOString() : val;
         }
-      } else if (colName === "Age") {
-        var num = parseInt(val, 10);
-        if (!isNaN(num) && val !== "" && val !== null) {
-          payload[colName] = num;
-        }
-      } else if (val !== "" && val !== null && val !== undefined) {
-        payload[colName] = (val instanceof Date) ? val.toISOString() : val;
       }
     }
 
@@ -191,26 +212,24 @@ function onSheetEdit(e) {
 
     var payload = {};
     for (var i = 0; i < headers.length; i++) {
-      var colName = String(headers[i]).trim();
+      var matchedCol = matchColumn(headers[i]);
       var val = rowValues[i];
 
-      if (colName === "Patient_ID") {
-        var parsedId = parseInt(val, 10);
-        payload["Patient_ID"] = !isNaN(parsedId) ? parsedId : val;
-      } else if (colName === "Date") {
-        payload["Date"] = formatSupabaseDate(val);
-      } else if (colName === "Lat" || colName === "Long") {
-        var num = parseFloat(val);
-        if (!isNaN(num) && val !== "" && val !== null) {
-          payload[colName] = num;
+      if (matchedCol && val !== "" && val !== null && val !== undefined) {
+        if (matchedCol === "Patient_ID") {
+          var parsedId = parseInt(val, 10);
+          payload["Patient_ID"] = !isNaN(parsedId) ? parsedId : val;
+        } else if (matchedCol === "Date") {
+          payload["Date"] = formatSupabaseDate(val);
+        } else if (matchedCol === "Lat" || matchedCol === "Long") {
+          var num = parseFloat(val);
+          if (!isNaN(num)) payload[matchedCol] = num;
+        } else if (matchedCol === "Age") {
+          var num = parseInt(val, 10);
+          if (!isNaN(num)) payload[matchedCol] = num;
+        } else {
+          payload[matchedCol] = (val instanceof Date) ? val.toISOString() : val;
         }
-      } else if (colName === "Age") {
-        var num = parseInt(val, 10);
-        if (!isNaN(num) && val !== "" && val !== null) {
-          payload[colName] = num;
-        }
-      } else if (val !== "" && val !== null && val !== undefined) {
-        payload[colName] = (val instanceof Date) ? val.toISOString() : val;
       }
     }
 
@@ -251,13 +270,18 @@ function doPost(e) {
     var rows = sheet.getDataRange().getValues();
     var headers = rows[0];
 
-    var idCol = headers.indexOf("Patient_ID");
-    var zoneCol = headers.indexOf("Zone");
-    var wardCol = headers.indexOf("Ward_Name");
-    var latCol = headers.indexOf("Lat");
-    var longCol = headers.indexOf("Long");
-    var photoCol = headers.indexOf("Location_Photo_Url");
-    var statusCol = headers.indexOf("Verification_Status");
+    var idCol = -1, zoneCol = -1, wardCol = -1, latCol = -1, longCol = -1, photoCol = -1, statusCol = -1;
+
+    for (var h = 0; h < headers.length; h++) {
+      var m = matchColumn(headers[h]);
+      if (m === "Patient_ID") idCol = h;
+      if (m === "Zone") zoneCol = h;
+      if (m === "Ward_Name") wardCol = h;
+      if (m === "Lat") latCol = h;
+      if (m === "Long") longCol = h;
+      if (m === "Location_Photo_Url") photoCol = h;
+      if (m === "Verification_Status") statusCol = h;
+    }
 
     if (idCol === -1) idCol = 0;
 

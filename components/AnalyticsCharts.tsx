@@ -250,9 +250,9 @@ export default function AnalyticsCharts({
             <span>🦠</span> Disease Distribution
           </h3>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center gap-3 xl:gap-4 my-auto">
             {/* Donut Circle */}
-            <div className="relative w-64 h-64 flex-shrink-0 flex items-center justify-center">
+            <div className="relative w-44 h-44 sm:w-48 sm:h-48 xl:w-52 xl:h-52 flex-shrink-0 flex items-center justify-center my-1">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -260,8 +260,8 @@ export default function AnalyticsCharts({
                       data: diseaseData,
                       cx: '50%',
                       cy: '50%',
-                      innerRadius: 65,
-                      outerRadius: 95,
+                      innerRadius: 48,
+                      outerRadius: 74,
                       paddingAngle: 3,
                       dataKey: 'value',
                       activeIndex: activeDiseaseIndex,
@@ -286,13 +286,13 @@ export default function AnalyticsCharts({
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none z-0">
-                <span className="text-3xl font-black text-slate-900 dark:text-white">{totalCases}</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Cases</span>
+                <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white leading-none">{totalCases}</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mt-0.5">Cases</span>
               </div>
             </div>
 
-            {/* Tight Legend List */}
-            <div className="flex-1 space-y-2 w-full">
+            {/* Scrollable & Compact Legend List */}
+            <div className="flex-1 space-y-1.5 w-full max-h-[220px] sm:max-h-[230px] overflow-y-auto pr-1">
               {diseaseData.map((item, idx) => {
                 const pct = ((item.value / totalCases) * 100).toFixed(1);
                 const isHovered = activeDiseaseIndex === idx;
@@ -302,17 +302,17 @@ export default function AnalyticsCharts({
                     key={item.name}
                     onMouseEnter={() => setActiveDiseaseIndex(idx)}
                     onMouseLeave={() => setActiveDiseaseIndex(undefined)}
-                    className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg border cursor-pointer transition-colors duration-150 ${
+                    className={`flex items-center gap-2 text-xs px-2.5 py-1 rounded-lg border cursor-pointer transition-colors duration-150 ${
                       isHovered
                         ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-bold border-slate-900 shadow-md'
                         : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-200 hover:bg-slate-100'
                     }`}
                   >
                     <span
-                      className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm border border-white dark:border-slate-800"
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm border border-white dark:border-slate-800"
                       style={{ backgroundColor: color }}
                     />
-                    <span className="font-bold text-xs flex-1 truncate">{item.name}</span>
+                    <span className="font-bold text-[11px] flex-1 truncate">{item.name}</span>
                     <span className="font-black text-xs ml-auto flex-shrink-0">{item.value}</span>
                     <span
                       className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold flex-shrink-0 ${

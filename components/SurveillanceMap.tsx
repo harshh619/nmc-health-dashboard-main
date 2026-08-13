@@ -26,6 +26,7 @@ export default function SurveillanceMap({
     'Patient Cluster View' | 'Ward-wise Exact Count View' | 'All Cases Points View'
   >('Patient Cluster View');
   const [geoData, setGeoData] = useState<GeoJsonData | null>(null);
+  const [showMobileLegend, setShowMobileLegend] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<L.Map | null>(null);
   const geoJsonLayerGroupRef = useRef<L.FeatureGroup | null>(null);
@@ -670,8 +671,25 @@ export default function SurveillanceMap({
       <div className="relative w-full h-[480px] sm:h-[580px] md:h-[640px] rounded-xl overflow-hidden border border-slate-200">
         <div ref={mapContainerRef} className="w-full h-full z-0" />
 
+        {/* Mobile Legend Toggle Pill Button */}
+        <div className="sm:hidden absolute bottom-3 left-3 z-[9999] pointer-events-auto">
+          <button
+            onClick={() => setShowMobileLegend(!showMobileLegend)}
+            className="bg-slate-900/90 hover:bg-slate-900 text-white backdrop-blur text-xs font-bold px-3 py-1.5 rounded-full shadow-lg border border-slate-700 flex items-center gap-1.5 transition-all active:scale-95"
+          >
+            <span>📊 Map Legend</span>
+            <span className="text-[10px] bg-slate-700 px-1.5 py-0.2 rounded-full">
+              {showMobileLegend ? '✕ Close' : '▲ Open'}
+            </span>
+          </button>
+        </div>
+
         {/* Floating Legends */}
-        <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-[9999] flex flex-col sm:flex-row items-start sm:items-end gap-2 sm:gap-3 pointer-events-none scale-90 sm:scale-100 origin-bottom-left">
+        <div
+          className={`absolute bottom-12 left-2 sm:bottom-4 sm:left-4 z-[9999] ${
+            showMobileLegend ? 'flex' : 'hidden sm:flex'
+          } flex-col sm:flex-row items-start sm:items-end gap-2 sm:gap-3 pointer-events-none scale-90 sm:scale-100 origin-bottom-left max-w-[calc(100vw-2rem)]`}
+        >
           {/* Disease Types Box */}
           <div className="bg-white/95 backdrop-blur border border-slate-200/90 rounded-xl p-2.5 sm:p-3 shadow-xl pointer-events-auto w-44 sm:w-52 max-h-[220px] sm:max-h-[360px] flex flex-col justify-end">
             <div className="text-xs font-bold text-blue-900 mb-1.5 pb-1 border-b border-slate-200 flex items-center gap-1 flex-shrink-0">

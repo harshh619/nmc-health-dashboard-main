@@ -189,6 +189,26 @@ export default function FieldVerificationModal({
       return;
     }
 
+    // Strict Spatial Boundary Guard: Prevent submission of mismatched/fake location or ward selection
+    if (geoData) {
+      if (!detectedWardFromGps) {
+        setSubmitError(
+          `🚨 Invalid Location Coordinates: The captured GPS location (${lat}, ${long}) lies OUTSIDE Nagpur Municipal Corporation (NMC) ward boundaries. Please capture valid coordinates within Nagpur.`
+        );
+        return;
+      }
+
+      const cleanSelected = cleanWardName(selectedWard);
+      const cleanDetected = cleanWardName(detectedWardFromGps);
+
+      if (cleanSelected && cleanDetected && cleanSelected !== cleanDetected) {
+        setSubmitError(
+          `🚨 Spatial Boundary Mismatch Blocked: Captured GPS coordinates belong to Prabhag No. ${cleanDetected}, but you selected Prabhag No. ${cleanSelected}. Please click "Auto-Set Prabhag ${cleanDetected}" to correct.`
+        );
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setSubmitError('');
 
@@ -350,29 +370,40 @@ export default function FieldVerificationModal({
             {detectedWardFromGps && (
               <div
                 className={`mt-2 p-2.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-colors duration-300 ${
-                  selectedWard === detectedWardFromGps
+                  cleanWardName(selectedWard) === cleanWardName(detectedWardFromGps)
                     ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200'
-                    : 'bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200'
+                    : 'bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200'
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <MapPin className={`w-4 h-4 flex-shrink-0 ${
+                    cleanWardName(selectedWard) === cleanWardName(detectedWardFromGps)
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-rose-600 dark:text-rose-400'
+                  }`} />
                   <div>
                     <span className="font-bold block">
-                      🗺️ GPS Map Boundary Verification:
+                      {cleanWardName(selectedWard) === cleanWardName(detectedWardFromGps)
+                        ? '✓ GPS Map Boundary Matched:'
+                        : '🚨 Spatial Boundary Mismatch Detected:'}
                     </span>
                     <span className="text-[11px] opacity-90">
                       Coordinates map directly inside <b>Prabhag No. {detectedWardFromGps}</b>.
+                      {cleanWardName(selectedWard) !== cleanWardName(detectedWardFromGps) && (
+                        <span className="block text-rose-700 dark:text-rose-300 font-bold mt-0.5">
+                          Submission is BLOCKED until ward selection is corrected.
+                        </span>
+                      )}
                     </span>
                   </div>
                 </div>
-                {selectedWard !== detectedWardFromGps && (
+                {cleanWardName(selectedWard) !== cleanWardName(detectedWardFromGps) && (
                   <button
                     type="button"
                     onClick={() => setSelectedWard(detectedWardFromGps)}
-                    className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] rounded-lg shadow-sm flex items-center justify-center gap-1 transition-transform active:scale-95 cursor-pointer flex-shrink-0"
+                    className="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] rounded-lg shadow-sm flex items-center justify-center gap-1 transition-transform active:scale-95 cursor-pointer flex-shrink-0"
                   >
-                    <span>Auto-Set Prabhag {detectedWardFromGps}</span>
+                    <span>Fix & Auto-Set Prabhag {detectedWardFromGps}</span>
                   </button>
                 )}
               </div>

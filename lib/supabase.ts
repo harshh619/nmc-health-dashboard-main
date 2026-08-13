@@ -226,7 +226,7 @@ export async function fetchPatientData(): Promise<{ data: PatientRecord[]; dataS
             if (gender.toLowerCase().startsWith('m')) gender = 'Male';
             if (gender.toLowerCase().startsWith('f')) gender = 'Female';
           }
-          const wardName = row.Ward_Name || row.ward_name || row.Ward || 'Unknown';
+          const wardName = row.Ward_Name || row.ward_name || row.Ward || 'Unassigned';
           const rawZone = row.Zone || row.zone;
           const resolvedZone = getZoneForWard(wardName, rawZone);
 

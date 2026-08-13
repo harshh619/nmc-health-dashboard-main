@@ -301,15 +301,22 @@ function onSheetEdit(e) {
     var parsedId = parseInt(rawId, 10);
     var currentId = !isNaN(parsedId) ? parsedId : rawId;
 
-    var wardVal = wardCol !== -1 && rowValues[wardCol] ? formatFullWardName(rowValues[wardCol]) : "";
+    var wardVal = wardCol !== -1 ? formatFullWardName(rowValues[wardCol]) : "Unassigned";
     var zoneVal = zoneCol !== -1 && rowValues[zoneCol] ? String(rowValues[zoneCol]).trim() : "";
 
-    // Real-Time Auto-Fill Zone in Google Sheet if Ward is edited
-    if (range.getColumn() === wardCol + 1 && wardVal) {
-      var autoZ = getZoneFromWard(wardVal);
-      if (autoZ && zoneCol !== -1) {
-        sheet.getRange(row, zoneCol + 1).setValue(autoZ);
-        zoneVal = autoZ;
+    // Real-Time Auto-Fill or Clear Zone in Google Sheet if Ward is edited
+    if (range.getColumn() === wardCol + 1) {
+      if (wardVal && wardVal !== "Unassigned") {
+        var autoZ = getZoneFromWard(wardVal);
+        if (autoZ && zoneCol !== -1) {
+          sheet.getRange(row, zoneCol + 1).setValue(autoZ);
+          zoneVal = autoZ;
+        }
+      } else {
+        if (zoneCol !== -1) {
+          sheet.getRange(row, zoneCol + 1).setValue("");
+          zoneVal = "";
+        }
       }
     }
 
@@ -317,14 +324,14 @@ function onSheetEdit(e) {
       "Patient_ID": currentId
     };
 
-    if (nameCol !== -1 && rowValues[nameCol]) payload["Patient_Name"] = String(rowValues[nameCol]);
-    if (dateCol !== -1 && rowValues[dateCol]) payload["Date"] = formatSupabaseDate(rowValues[dateCol]);
-    if (diseaseCol !== -1 && rowValues[diseaseCol]) payload["Disease"] = String(rowValues[diseaseCol]);
-    if (wardVal) payload["Ward_Name"] = wardVal;
-    if (latCol !== -1 && parseFloat(rowValues[latCol])) payload["Lat"] = parseFloat(rowValues[latCol]);
-    if (longCol !== -1 && parseFloat(rowValues[longCol])) payload["Long"] = parseFloat(rowValues[longCol]);
-    if (statusCol !== -1 && rowValues[statusCol]) payload["Status"] = String(rowValues[statusCol]);
-    if (zoneVal) payload["Zone"] = zoneVal;
+    if (nameCol !== -1) payload["Patient_Name"] = rowValues[nameCol] ? String(rowValues[nameCol]) : "Patient " + currentId;
+    if (dateCol !== -1) payload["Date"] = rowValues[dateCol] ? formatSupabaseDate(rowValues[dateCol]) : new Date().toISOString();
+    if (diseaseCol !== -1) payload["Disease"] = rowValues[diseaseCol] ? String(rowValues[diseaseCol]) : "Unknown";
+    if (wardCol !== -1) payload["Ward_Name"] = wardVal;
+    if (latCol !== -1) payload["Lat"] = (rowValues[latCol] !== "" && rowValues[latCol] !== null && !isNaN(parseFloat(rowValues[latCol]))) ? parseFloat(rowValues[latCol]) : null;
+    if (longCol !== -1) payload["Long"] = (rowValues[longCol] !== "" && rowValues[longCol] !== null && !isNaN(parseFloat(rowValues[longCol]))) ? parseFloat(rowValues[longCol]) : null;
+    if (statusCol !== -1) payload["Status"] = rowValues[statusCol] ? String(rowValues[statusCol]) : "Active";
+    if (zoneCol !== -1) payload["Zone"] = zoneVal ? zoneVal : null;
 
     var supabaseUrl = SUPABASE_URL + "?on_conflict=Patient_ID";
     var options = {

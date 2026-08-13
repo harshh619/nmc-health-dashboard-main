@@ -157,7 +157,7 @@ export default function FieldVerificationModal({
     );
   };
 
-  // Handle Photo File Selection / Camera Capture
+  // Handle Photo File Selection / Camera Capture with GPS Watermark
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -168,7 +168,47 @@ export default function FieldVerificationModal({
       const reader = new FileReader();
       reader.onload = () => {
         if (typeof reader.result === 'string') {
-          setPhotoDataUrl(reader.result);
+          // Embed GPS coordinates into the image using Canvas
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            
+            if (ctx) {
+              // Draw original image
+              ctx.drawImage(img, 0, 0);
+              
+              // Calculate responsive text size based on image width
+              const fontSize = Math.max(14, Math.floor(img.width * 0.03));
+              const padding = fontSize;
+              const boxHeight = (fontSize * 2) + padding;
+              
+              // Draw a semi-transparent black strip at the bottom for readability
+              ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+              ctx.fillRect(0, img.height - boxHeight, img.width, boxHeight);
+              
+              // Draw text (Lat, Long, Date)
+              ctx.fillStyle = '#ffffff';
+              ctx.font = `bold ${fontSize}px sans-serif`;
+              ctx.textBaseline = 'top';
+              
+              const geoText = `Lat: ${lat || 'N/A'}, Long: ${long || 'N/A'}`;
+              const dateText = `Date: ${new Date().toLocaleString()}`;
+              
+              ctx.fillText(geoText, padding, img.height - boxHeight + (padding / 2));
+              ctx.fillText(dateText, padding, img.height - boxHeight + (padding / 2) + fontSize + 2);
+              
+              // Get the watermarked image data
+              const watermarkedUrl = canvas.toDataURL('image/jpeg', 0.85);
+              setPhotoDataUrl(watermarkedUrl);
+            } else {
+              // Fallback if canvas is not supported
+              setPhotoDataUrl(reader.result as string);
+            }
+          };
+          img.src = reader.result;
         }
       };
       reader.readAsDataURL(file);

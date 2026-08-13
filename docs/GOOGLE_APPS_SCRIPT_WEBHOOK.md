@@ -235,16 +235,28 @@ function syncAllExistingRows() {
     }
 
     if (payloadArray.length > 0) {
-      var upsertUrl = SUPABASE_URL + "?on_conflict=Patient_ID";
-      var upsertOptions = {
-        'method': 'post',
-        'headers': Object.assign({}, headersConfig, {'Prefer': 'resolution=merge-duplicates'}),
-        'payload': JSON.stringify(payloadArray),
-        'muteHttpExceptions': true
-      };
-      var upsertResponse = UrlFetchApp.fetch(upsertUrl, upsertOptions);
-      Logger.log("Bulk Sync Response Code: " + upsertResponse.getResponseCode());
-      Logger.log("Bulk Sync Response Body: " + upsertResponse.getContentText());
+      for (var k = 0; k < payloadArray.length; k++) {
+        var rowPayload = payloadArray[k];
+        var patchUrl = SUPABASE_URL + "?Patient_ID=eq." + encodeURIComponent(rowPayload.Patient_ID);
+        var patchOptions = {
+          'method': 'patch',
+          'contentType': 'application/json',
+          'headers': {
+            'apikey': SUPABASE_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_KEY,
+            'Prefer': 'return=representation'
+          },
+          'payload': JSON.stringify({
+            'Ward_Name': rowPayload.Ward_Name,
+            'Lat': rowPayload.Lat,
+            'Long': rowPayload.Long,
+            'Zone': rowPayload.Zone
+          }),
+          'muteHttpExceptions': true
+        };
+        UrlFetchApp.fetch(patchUrl, patchOptions);
+      }
+      Logger.log("Bulk Sync completed for " + payloadArray.length + " rows.");
     }
 
   } catch (err) {
@@ -271,11 +283,11 @@ function onSheetEdit(e) {
 
     for (var h = 0; h < headers.length; h++) {
       var norm = headers[h].toLowerCase().replace(/\s+/g, '_');
-      if (norm === "patient_id") idCol = h;
+      if (norm === "patient_id" || norm === "id" || norm === "patient_no") idCol = h;
       if (norm === "patient_name" || norm === "name") nameCol = h;
       if (norm === "date") dateCol = h;
       if (norm === "disease") diseaseCol = h;
-      if (norm === "ward_name" || norm === "ward") wardCol = h;
+      if (norm === "ward_name" || norm === "ward" || norm === "prabhag") wardCol = h;
       if (norm === "lat" || norm === "latitude") latCol = h;
       if (norm === "long" || norm === "longitude") longCol = h;
       if (norm === "status") statusCol = h;
@@ -286,8 +298,8 @@ function onSheetEdit(e) {
     var rawId = rowValues[idCol];
     if (rawId === "" || rawId === null || rawId === undefined) return;
 
-    var parsedId = parseInt(rawId, 10);
-    var currentId = !isNaN(parsedId) ? parsedId : rawId;
+    var cleanDigits = String(rawId).replace(/\D+/g, "");
+    var currentId = cleanDigits ? parseInt(cleanDigits, 10) : rawId;
 
     var wardVal = wardCol !== -1 ? formatFullWardName(rowValues[wardCol]) : "Unassigned";
     var zoneVal = zoneCol !== -1 && rowValues[zoneCol] ? String(rowValues[zoneCol]).trim() : "";
@@ -308,29 +320,23 @@ function onSheetEdit(e) {
       }
     }
 
-    var payload = {
-      "Patient_ID": currentId
+    var patchPayload = {
+      "Ward_Name": wardVal,
+      "Lat": (latCol !== -1 && rowValues[latCol] !== "" && rowValues[latCol] !== null && !isNaN(parseFloat(rowValues[latCol]))) ? parseFloat(rowValues[latCol]) : null,
+      "Long": (longCol !== -1 && rowValues[longCol] !== "" && rowValues[longCol] !== null && !isNaN(parseFloat(rowValues[longCol]))) ? parseFloat(rowValues[longCol]) : null,
+      "Zone": zoneVal ? zoneVal : "Unassigned"
     };
 
-    if (nameCol !== -1) payload["Patient_Name"] = rowValues[nameCol] ? String(rowValues[nameCol]) : "Patient " + currentId;
-    if (dateCol !== -1) payload["Date"] = rowValues[dateCol] ? formatSupabaseDate(rowValues[dateCol]) : new Date().toISOString();
-    if (diseaseCol !== -1) payload["Disease"] = rowValues[diseaseCol] ? String(rowValues[diseaseCol]) : "Unknown";
-    if (wardCol !== -1) payload["Ward_Name"] = wardVal;
-    if (latCol !== -1) payload["Lat"] = (rowValues[latCol] !== "" && rowValues[latCol] !== null && !isNaN(parseFloat(rowValues[latCol]))) ? parseFloat(rowValues[latCol]) : null;
-    if (longCol !== -1) payload["Long"] = (rowValues[longCol] !== "" && rowValues[longCol] !== null && !isNaN(parseFloat(rowValues[longCol]))) ? parseFloat(rowValues[longCol]) : null;
-    if (statusCol !== -1) payload["Status"] = rowValues[statusCol] ? String(rowValues[statusCol]) : "Active";
-    if (zoneCol !== -1) payload["Zone"] = zoneVal ? zoneVal : null;
-
-    var supabaseUrl = SUPABASE_URL + "?on_conflict=Patient_ID";
+    var supabaseUrl = SUPABASE_URL + "?Patient_ID=eq." + encodeURIComponent(currentId);
     var options = {
-      'method': 'post',
+      'method': 'patch',
       'contentType': 'application/json',
       'headers': {
         'apikey': SUPABASE_KEY,
         'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Prefer': 'resolution=merge-duplicates'
+        'Prefer': 'return=representation'
       },
-      'payload': JSON.stringify([payload]),
+      'payload': JSON.stringify(patchPayload),
       'muteHttpExceptions': true
     };
 

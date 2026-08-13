@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { PatientRecord } from './types';
-import { formatFullWardName } from './wardMapping';
+import { formatFullWardName, getZoneForWard } from './wardMapping';
 
 const GOOGLE_APPS_SCRIPT_WEBHOOK_URL =
   process.env.NEXT_PUBLIC_GOOGLE_SHEET_WEBHOOK_URL ||
@@ -60,15 +60,16 @@ export async function submitFieldVerification(
   const pIdNum = parseInt(String(payload.patientId), 10);
   const targetPatientId = !isNaN(pIdNum) ? pIdNum : payload.patientId;
   const formattedWard = formatFullWardName(payload.wardName);
-
-  let supabaseSuccess = false;
+  const autoZone = getZoneForWard(formattedWard, payload.zone);
 
   const updateFields: any = {
     Ward_Name: formattedWard,
     Lat: payload.lat,
     Long: payload.long,
-    ...(payload.zone ? { Zone: payload.zone } : {}),
+    Zone: autoZone || payload.zone || 'Unassigned',
   };
+
+  let supabaseSuccess = false;
 
   // 1. Direct REST PATCH to Supabase Database (Updates existing row by Patient_ID)
   try {

@@ -139,13 +139,32 @@ export default function SurveillanceMap({
         'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
     });
 
+    const getResponsiveInitialZoom = (): number => {
+      if (typeof window === 'undefined') return 11.7;
+      const w = window.innerWidth;
+      if (w < 480) return 10.3;  // Mobile portrait (fits 100% Nagpur wards)
+      if (w < 768) return 10.6;  // Small tablet / large phone
+      if (w < 1024) return 11.0; // Tablet
+      return 11.7;               // Desktop
+    };
+
+    const getResponsiveInitialCenter = (): [number, number] => {
+      if (typeof window === 'undefined') return [21.142, 79.082];
+      const w = window.innerWidth;
+      if (w < 480) return [21.145, 79.070]; // slightly centered for narrow portrait
+      return [21.142, 79.082];
+    };
+
     const savedLat = sessionStorage.getItem('mapLat');
     const savedLng = sessionStorage.getItem('mapLng');
     const savedZoom = sessionStorage.getItem('mapZoom');
 
-    const initialLat = savedLat ? parseFloat(savedLat) : 21.142;
-    const initialLng = savedLng ? parseFloat(savedLng) : 79.082;
-    const initialZoom = savedZoom ? parseFloat(savedZoom) : 11.7;
+    const defaultCenter = getResponsiveInitialCenter();
+    const defaultZoom = getResponsiveInitialZoom();
+
+    const initialLat = savedLat ? parseFloat(savedLat) : defaultCenter[0];
+    const initialLng = savedLng ? parseFloat(savedLng) : defaultCenter[1];
+    const initialZoom = savedZoom ? parseFloat(savedZoom) : defaultZoom;
 
     const map = L.map(mapContainerRef.current, {
       center: [initialLat, initialLng],
@@ -192,10 +211,13 @@ export default function SurveillanceMap({
         L.DomEvent.on(container, 'click', (e: any) => {
           L.DomEvent.stopPropagation(e);
           L.DomEvent.preventDefault(e);
-          map.setView([21.142, 79.082], 11.7, { animate: true, duration: 1.0 });
           sessionStorage.removeItem('mapLat');
           sessionStorage.removeItem('mapLng');
           sessionStorage.removeItem('mapZoom');
+
+          const rCenter = getResponsiveInitialCenter();
+          const rZoom = getResponsiveInitialZoom();
+          map.setView(rCenter, rZoom, { animate: true, duration: 1.0 });
         });
         return container;
       },
@@ -645,13 +667,13 @@ export default function SurveillanceMap({
       )}
 
       {/* Map Container */}
-      <div className="relative w-full h-[640px] rounded-xl overflow-hidden border border-slate-200">
+      <div className="relative w-full h-[480px] sm:h-[580px] md:h-[640px] rounded-xl overflow-hidden border border-slate-200">
         <div ref={mapContainerRef} className="w-full h-full z-0" />
 
         {/* Floating Legends */}
-        <div className="absolute bottom-4 left-4 z-[9999] flex flex-row items-end gap-3 pointer-events-none">
+        <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-[9999] flex flex-col sm:flex-row items-start sm:items-end gap-2 sm:gap-3 pointer-events-none scale-90 sm:scale-100 origin-bottom-left">
           {/* Disease Types Box */}
-          <div className="bg-white/95 backdrop-blur border border-slate-200/90 rounded-xl p-3 shadow-xl pointer-events-auto w-52 max-h-[360px] flex flex-col justify-end">
+          <div className="bg-white/95 backdrop-blur border border-slate-200/90 rounded-xl p-2.5 sm:p-3 shadow-xl pointer-events-auto w-44 sm:w-52 max-h-[220px] sm:max-h-[360px] flex flex-col justify-end">
             <div className="text-xs font-bold text-blue-900 mb-1.5 pb-1 border-b border-slate-200 flex items-center gap-1 flex-shrink-0">
               <span>🦠</span> Disease Types
             </div>

@@ -230,6 +230,24 @@ export async function fetchPatientData(): Promise<{ data: PatientRecord[]; dataS
           const rawZone = row.Zone || row.zone;
           const resolvedZone = getZoneForWard(wardName, rawZone);
 
+          const lat = parseFloat(row.Lat || row.lat || row.Latitude || row.latitude);
+          const long = parseFloat(row.Long || row.long || row.Longitude || row.longitude);
+          const hasValidLat = typeof lat === 'number' && !isNaN(lat) && lat !== 0;
+          const hasValidLong = typeof long === 'number' && !isNaN(long) && long !== 0;
+          const hasValidWard =
+            Boolean(wardName) &&
+            wardName.toLowerCase() !== 'unassigned' &&
+            wardName.toLowerCase() !== 'unknown' &&
+            wardName.trim() !== '';
+
+          const rawVStatus = row.Verification_Status || row.verification_status;
+          const verificationStatus =
+            rawVStatus === 'Verified'
+              ? 'Verified'
+              : hasValidLat && hasValidLong && hasValidWard
+              ? 'Verified'
+              : 'Pending';
+
           return {
             ...row,
             Patient_ID: row.Patient_ID || row.patient_id || row.id || idx + 1,
@@ -237,12 +255,16 @@ export async function fetchPatientData(): Promise<{ data: PatientRecord[]; dataS
             Disease: row.Disease || row.disease || 'Unknown',
             Ward_Name: wardName,
             Zone: resolvedZone,
-            Lat: row.Lat || row.lat || row.Latitude || row.latitude,
-            Long: row.Long || row.long || row.Longitude || row.longitude,
+            Lat: hasValidLat ? lat : undefined,
+            Long: hasValidLong ? long : undefined,
             Status: normalizeStatus(row.Status || row.status),
             Age: Number(age),
             Gender: gender,
             Date: normalizeDateString(row.Date || row.date || row.created_at),
+            Verification_Status: verificationStatus,
+            Location_Photo_Url: row.Location_Photo_Url || row.location_photo_url || row.photo_url || '',
+            Verified_By: row.Verified_By || row.verified_by || '',
+            Verified_At: row.Verified_At || row.verified_at || '',
           };
         });
         const label = cleaned.length >= count
@@ -289,6 +311,21 @@ export async function fetchPatientData(): Promise<{ data: PatientRecord[]; dataS
           const csvWard = record.Ward_Name || 'Unknown';
           const csvZone = record.Zone;
           const resolvedCsvZone = getZoneForWard(csvWard, csvZone);
+          const hasValidCsvLat = !isNaN(lat) && lat !== 0;
+          const hasValidCsvLong = !isNaN(long) && long !== 0;
+          const hasValidCsvWard =
+            Boolean(csvWard) &&
+            csvWard.toLowerCase() !== 'unassigned' &&
+            csvWard.toLowerCase() !== 'unknown' &&
+            csvWard.trim() !== '';
+
+          const rawCsvVStatus = record.Verification_Status || record.verification_status;
+          const csvVStatus =
+            rawCsvVStatus === 'Verified'
+              ? 'Verified'
+              : hasValidCsvLat && hasValidCsvLong && hasValidCsvWard
+              ? 'Verified'
+              : 'Pending';
 
           records.push({
             Patient_ID: record.Patient_ID || i,
@@ -302,7 +339,8 @@ export async function fetchPatientData(): Promise<{ data: PatientRecord[]; dataS
             Age: isNaN(ageVal) ? Math.floor(10 + ((i * 7) % 75)) : ageVal,
             Gender: gender,
             Date: normalizeDateString(record.Date || new Date().toISOString().split('T')[0]),
-            Verification_Status: record.Verification_Status || record.verification_status || (isNaN(lat) || isNaN(long) || csvWard.toLowerCase() === 'unassigned' ? 'Pending' : 'Verified'),
+            Verification_Status: csvVStatus,
+            Location_Photo_Url: record.Location_Photo_Url || record.location_photo_url || record.photo_url || '',
           });
         }
         return { data: sortPatientRecordsById(records), dataSource: 'Google Sheets 📊' };

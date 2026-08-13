@@ -35,9 +35,7 @@ export function isVerificationPending(record: PatientRecord): boolean {
     return true;
   }
 
-  if (record.Verification_Status === 'Pending') return true;
-  if (record.Verification_Status === 'Verified') return false;
-
+  // When valid Lat, Long, and Ward exist, tracking is completed (Verified)
   return false;
 }
 
@@ -76,6 +74,10 @@ export async function submitFieldVerification(
             Ward_Name: formattedWard,
             Lat: payload.lat,
             Long: payload.long,
+            Verification_Status: 'Verified',
+            Verified_By: payload.verifiedBy || 'Field Officer',
+            Verified_At: verifiedTimestamp,
+            ...(payload.locationPhotoUrl ? { Location_Photo_Url: payload.locationPhotoUrl } : {}),
             ...(payload.zone ? { Zone: payload.zone } : {}),
           },
         ]),
@@ -99,6 +101,10 @@ export async function submitFieldVerification(
             Ward_Name: formattedWard,
             Lat: payload.lat,
             Long: payload.long,
+            Verification_Status: 'Verified',
+            Verified_By: payload.verifiedBy || 'Field Officer',
+            Verified_At: verifiedTimestamp,
+            ...(payload.locationPhotoUrl ? { Location_Photo_Url: payload.locationPhotoUrl } : {}),
             ...(payload.zone ? { Zone: payload.zone } : {}),
           })
           .eq('Patient_ID', targetPatientId);

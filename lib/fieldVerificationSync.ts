@@ -63,53 +63,73 @@ export async function submitFieldVerification(
 
   let supabaseSuccess = false;
 
-  // 1. Direct REST Upsert to Supabase Database (Bypasses RLS restrictions for instant update)
+  const updateFields: any = {
+    Ward_Name: formattedWard,
+    Lat: payload.lat,
+    Long: payload.long,
+    ...(payload.zone ? { Zone: payload.zone } : {}),
+  };
+
+  // 1. Direct REST PATCH to Supabase Database (Updates existing row by Patient_ID)
   try {
     const res = await fetch(
-      'https://oysmagibpobxsipxjzpd.supabase.co/rest/v1/patients_data?on_conflict=Patient_ID',
+      `https://oysmagibpobxsipxjzpd.supabase.co/rest/v1/patients_data?Patient_ID=eq.${encodeURIComponent(String(targetPatientId))}`,
       {
-        method: 'POST',
+        method: 'PATCH',
         headers: {
           apikey: SUPABASE_SERVICE_KEY,
           Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
           'Content-Type': 'application/json',
-          Prefer: 'resolution=merge-duplicates',
+          Prefer: 'return=representation',
         },
-        body: JSON.stringify([
-          {
-            Patient_ID: targetPatientId,
-            Patient_Name: payload.patientName || `Patient ${targetPatientId}`,
-            Disease: payload.disease || 'Unknown',
-            Status: payload.status || 'Active',
-            Date: payload.date || new Date().toISOString(),
-            Ward_Name: formattedWard,
-            Lat: payload.lat,
-            Long: payload.long,
-            Zone: payload.zone || 'Unassigned',
-          },
-        ]),
+        body: JSON.stringify(updateFields),
       }
     );
     if (res.ok) {
-      supabaseSuccess = true;
+      const updatedRows = await res.json();
+      if (Array.isArray(updatedRows) && updatedRows.length > 0) {
+        supabaseSuccess = true;
+      }
     }
   } catch (err) {
-    console.warn('Supabase REST upsert error:', err);
+    console.warn('Supabase REST PATCH error:', err);
   }
 
-  // Fallback to client update
+  // Fallback REST PATCH with raw payload.patientId
+  if (!supabaseSuccess) {
+    try {
+      const res = await fetch(
+        `https://oysmagibpobxsipxjzpd.supabase.co/rest/v1/patients_data?Patient_ID=eq.${encodeURIComponent(String(payload.patientId))}`,
+        {
+          method: 'PATCH',
+          headers: {
+            apikey: SUPABASE_SERVICE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+            'Content-Type': 'application/json',
+            Prefer: 'return=representation',
+          },
+          body: JSON.stringify(updateFields),
+        }
+      );
+      if (res.ok) {
+        const updatedRows = await res.json();
+        if (Array.isArray(updatedRows) && updatedRows.length > 0) {
+          supabaseSuccess = true;
+        }
+      }
+    } catch (err) {
+      console.warn('Supabase REST PATCH fallback error:', err);
+    }
+  }
+
+  // 2. Fallback to Supabase Client update
   if (!supabaseSuccess) {
     const tableNames = ['patients_data', 'Patients_Data', 'patient_data', 'patients'];
     for (const tableName of tableNames) {
       try {
         const { error } = await supabase
           .from(tableName)
-          .update({
-            Ward_Name: formattedWard,
-            Lat: payload.lat,
-            Long: payload.long,
-            ...(payload.zone ? { Zone: payload.zone } : {}),
-          })
+          .update(updateFields)
           .eq('Patient_ID', targetPatientId);
 
         if (!error) {
@@ -117,8 +137,41 @@ export async function submitFieldVerification(
           break;
         }
       } catch (err) {
-        console.warn(`Supabase update error on table '${tableName}':`, err);
+        console.warn(`Supabase client update error on table '${tableName}':`, err);
       }
+    }
+  }
+
+  // 3. Fallback REST POST upsert if row did not exist in Supabase DB
+  if (!supabaseSuccess) {
+    try {
+      await fetch(
+        'https://oysmagibpobxsipxjzpd.supabase.co/rest/v1/patients_data?on_conflict=Patient_ID',
+        {
+          method: 'POST',
+          headers: {
+            apikey: SUPABASE_SERVICE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+            'Content-Type': 'application/json',
+            Prefer: 'resolution=merge-duplicates',
+          },
+          body: JSON.stringify([
+            {
+              Patient_ID: targetPatientId,
+              Patient_Name: payload.patientName || `Patient ${targetPatientId}`,
+              Disease: payload.disease || 'Unknown',
+              Status: payload.status || 'Active',
+              Date: payload.date || new Date().toISOString(),
+              Ward_Name: formattedWard,
+              Lat: payload.lat,
+              Long: payload.long,
+              Zone: payload.zone || 'Unassigned',
+            },
+          ]),
+        }
+      );
+    } catch (err) {
+      console.warn('Supabase REST POST fallback error:', err);
     }
   }
 

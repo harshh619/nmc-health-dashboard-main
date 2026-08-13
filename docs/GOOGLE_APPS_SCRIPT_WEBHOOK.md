@@ -384,6 +384,29 @@ function doPost(e) {
       }
     }
 
+    // Bi-directional safety sync: Also push PATCH directly to Supabase DB
+    try {
+      var spUrl = SUPABASE_URL + "?Patient_ID=eq." + encodeURIComponent(data.patientId);
+      var spPayload = {};
+      if (data.wardName) spPayload["Ward_Name"] = formatFullWardName(data.wardName);
+      if (data.lat) spPayload["Lat"] = parseFloat(data.lat);
+      if (data.long) spPayload["Long"] = parseFloat(data.long);
+      if (autoZone) spPayload["Zone"] = autoZone;
+
+      UrlFetchApp.fetch(spUrl, {
+        "method": "patch",
+        "contentType": "application/json",
+        "headers": {
+          "apikey": SUPABASE_KEY,
+          "Authorization": "Bearer " + SUPABASE_KEY
+        },
+        "payload": JSON.stringify(spPayload),
+        "muteHttpExceptions": true
+      });
+    } catch (spErr) {
+      Logger.log("Supabase sync inside doPost error: " + spErr.toString());
+    }
+
     return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {

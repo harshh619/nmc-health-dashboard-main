@@ -216,6 +216,9 @@ export default function FieldVerificationModal({
       const res = await submitFieldVerification({
         patientId: patient.Patient_ID || 'N/A',
         patientName: patient.Patient_Name || 'Patient',
+        disease: patient.Disease || 'Unknown',
+        status: patient.Status || 'Active',
+        date: patient.Date || new Date().toISOString().split('T')[0],
         zone: patient.Zone || userSession?.assignedZone || 'Unknown Zone',
         wardName: formatFullWardName(selectedWard),
         lat: Number(lat),

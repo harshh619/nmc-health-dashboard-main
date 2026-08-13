@@ -9,6 +9,9 @@ const GOOGLE_APPS_SCRIPT_WEBHOOK_URL =
 export interface FieldVerificationPayload {
   patientId: string | number;
   patientName: string;
+  disease?: string;
+  status?: string;
+  date?: string;
   zone: string;
   wardName: string;
   lat: number;
@@ -22,9 +25,13 @@ export interface FieldVerificationPayload {
  * Checks if a patient record requires field verification
  */
 export function isVerificationPending(record: PatientRecord): boolean {
-  // If Lat or Long is missing or 0, or Ward is missing / 'Unassigned' -> ALWAYS Pending verification
-  const hasValidLat = typeof record.Lat === 'number' && !isNaN(record.Lat) && record.Lat !== 0;
-  const hasValidLong = typeof record.Long === 'number' && !isNaN(record.Long) && record.Long !== 0;
+  const rawLat = record.Lat;
+  const rawLong = record.Long;
+  const numLat = typeof rawLat === 'number' ? rawLat : parseFloat(String(rawLat || ''));
+  const numLong = typeof rawLong === 'number' ? rawLong : parseFloat(String(rawLong || ''));
+
+  const hasValidLat = !isNaN(numLat) && numLat !== 0;
+  const hasValidLong = !isNaN(numLong) && numLong !== 0;
   const hasValidWard =
     Boolean(record.Ward_Name) &&
     record.Ward_Name?.toLowerCase() !== 'unassigned' &&
@@ -71,14 +78,14 @@ export async function submitFieldVerification(
         body: JSON.stringify([
           {
             Patient_ID: targetPatientId,
+            Patient_Name: payload.patientName || `Patient ${targetPatientId}`,
+            Disease: payload.disease || 'Unknown',
+            Status: payload.status || 'Active',
+            Date: payload.date || new Date().toISOString(),
             Ward_Name: formattedWard,
             Lat: payload.lat,
             Long: payload.long,
-            Verification_Status: 'Verified',
-            Verified_By: payload.verifiedBy || 'Field Officer',
-            Verified_At: verifiedTimestamp,
-            ...(payload.locationPhotoUrl ? { Location_Photo_Url: payload.locationPhotoUrl } : {}),
-            ...(payload.zone ? { Zone: payload.zone } : {}),
+            Zone: payload.zone || 'Unassigned',
           },
         ]),
       }
@@ -101,10 +108,6 @@ export async function submitFieldVerification(
             Ward_Name: formattedWard,
             Lat: payload.lat,
             Long: payload.long,
-            Verification_Status: 'Verified',
-            Verified_By: payload.verifiedBy || 'Field Officer',
-            Verified_At: verifiedTimestamp,
-            ...(payload.locationPhotoUrl ? { Location_Photo_Url: payload.locationPhotoUrl } : {}),
             ...(payload.zone ? { Zone: payload.zone } : {}),
           })
           .eq('Patient_ID', targetPatientId);

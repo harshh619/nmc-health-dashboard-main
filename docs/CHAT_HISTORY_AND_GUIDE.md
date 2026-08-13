@@ -1,19 +1,31 @@
-# Google Apps Script Setup Guide - Automatic Zone Auto-Fill & Bi-Directional Sync
+# NMC Health Dashboard - Complete Conversation History & Comprehensive Reference Guide
 
-Follow this guide to enable **Automatic Zone Auto-Filling from Ward/Prabhag Name** in your Google Sheet, and keep Supabase and the Live Dashboard 100% in sync.
-
----
-
-## 🛠️ Step 1: Open Google Apps Script Editor
-
-1. Open your Google Sheet
-2. Click **Extensions** ➔ **Apps Script**.
+This document contains a complete, clean, human-readable summary of our conversation, including all diagnosed issues, code implementations, Google Apps Script setup instructions, and feature guides.
 
 ---
 
-## 📝 Step 2: Paste the Master Sync & Auto-Fill Script
+## 📌 1. Summary of All User Requests & Fixes
 
-Replace all code in `Code.gs` with this master script:
+| # | Topic / Issue | Root Cause | Resolution Implemented |
+|---|---|---|---|
+| **1** | Adding `Zone` column in Google Sheet | Missing dropdown validation | Created 10-Zone dropdown structure & validation rules for Google Sheets. |
+| **2** | Apps Script Webhook Integration | Missing webhook deployment | Generated and configured Google Apps Script `doPost` webhook endpoint. |
+| **3** | `syncAllExistingRows()` PostgREST 400 Bad Request | Schema mismatch on `Date` column | Standardized timestamp formatting with `formatSupabaseDate()`. |
+| **4** | PostgREST `PGRST102` Bulk Sync Failure | Inconsistent key sets in JSON payload array | Added uniform key initializer ensuring all array objects have identical keys. |
+| **5** | Prabhag/Ward Dropdown Missing in Field Verification | Zone string mismatch (`'2 Dharampeth'` vs `'2'`) | Updated `FieldVerificationModal.tsx` to match Zone Numbers & added 38-ward fallback. |
+| **6** | Scoping Cases for Unassigned vs Specific Zone | Unassigned cases not broadcasting | Updated `app/page.tsx` & `FieldTrackerWidget.tsx` to broadcast unassigned cases to all zones. |
+| **7** | Field Verification Pending Status | Supabase `PGRST204` column error on RLS updates | Cleaned update payload & implemented Direct REST API upsert with service key. |
+| **8** | Ward Formatting (`12` vs `Prabhag No. 12`) | Single numeric values exported | Implemented `formatFullWardName()` to standardize output format to `Prabhag No. XX`. |
+| **9** | Mistake Correction Workflow | No reset trigger on Google Sheet edit | Modified `isVerificationPending()`: clearing Ward resets to Pending; clearing Zone broadcasts to all zones. |
+| **10** | Real-Time Map Boundary Ward Verification | Manual dropdown selection risk | Implemented GeoJSON Point-in-Polygon boundary detection with auto-fix alert. |
+| **11** | KPI Card Title (`Status: Death`) | Requirement to show `Suspected Death` | Standardized display text to `Status: Suspected Death` in KPI cards, filters & table. |
+| **12** | Automatic Ward ➔ Zone Auto-Fill in Google Sheets | Manual Zone entry in Google Sheet | Created 38-Ward to 10-Zone lookup table in Apps Script to auto-fill Column I (Zone). |
+
+---
+
+## 💻 2. Master Google Apps Script Code (`Code.gs`)
+
+Paste this entire script into your Google Apps Script editor (`Code.gs`):
 
 ```javascript
 // =====================================================================
@@ -368,7 +380,7 @@ function doPost(e) {
     for (var i = 1; i < rows.length; i++) {
       if (String(rows[i][idCol]) === String(data.patientId)) {
         if (autoZone && zoneCol !== -1) sheet.getRange(i + 1, zoneCol + 1).setValue(autoZone);
-        if (wardCol !== -1 && data.wardName) sheet.getRange(i + 1, wardCol + 1).setValue(formatFullWardName(data.wardName));
+        if (wardCol !== -1 && data.wardName) sheet.getRange(i + 1, data.wardName ? formatFullWardName(data.wardName) : "");
         if (latCol !== -1 && data.lat) sheet.getRange(i + 1, latCol + 1).setValue(data.lat);
         if (longCol !== -1 && data.long) sheet.getRange(i + 1, longCol + 1).setValue(data.long);
         if (photoCol !== -1 && data.locationPhotoUrl) sheet.getRange(i + 1, photoCol + 1).setValue(data.locationPhotoUrl);
@@ -388,9 +400,7 @@ function doPost(e) {
 
 ---
 
-## ⚡ How to Auto-Fill All 878 Rows Now:
+## 🌐 3. Live Production URLs
 
-1. Open Google Sheet ➔ **Extensions** ➔ **Apps Script**.
-2. Replace code in `Code.gs` with the snippet above and click **💾 Save**.
-3. Select function **`syncAllExistingRows`** in top dropdown menu and click **▶ Run**.
-4. **All 878 rows in your Google Sheet will auto-fill Column I (Zone) instantly!**
+- **Live Dashboard**: [https://nmc-health-dashboard-main.vercel.app](https://nmc-health-dashboard-main.vercel.app)
+- **GitHub Repository**: [https://github.com/harshh619/nmc-health-dashboard-main.git](https://github.com/harshh619/nmc-health-dashboard-main.git)

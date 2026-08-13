@@ -4,7 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { HelpCircle, Activity, Thermometer, Droplets, CloudRain } from 'lucide-react';
 import { PatientRecord, WeatherData } from '../lib/types';
-import { formatStatusDisplay } from '../lib/supabase';
+import { formatStatusDisplay, normalizeStatus } from '../lib/supabase';
 
 interface MetricsOverviewProps {
   patientData: PatientRecord[];
@@ -50,8 +50,9 @@ export default function MetricsOverview({
     });
 
     if (statusFilter) {
-      currPeriod = currPeriod.filter((d) => d.Status === statusFilter);
-      prevPeriod = prevPeriod.filter((d) => d.Status === statusFilter);
+      const normFilter = normalizeStatus(statusFilter);
+      currPeriod = currPeriod.filter((d) => normalizeStatus(d.Status) === normFilter);
+      prevPeriod = prevPeriod.filter((d) => normalizeStatus(d.Status) === normFilter);
     }
 
     const currVal = currPeriod.length;
@@ -76,9 +77,8 @@ export default function MetricsOverview({
   const statusCounts = React.useMemo(() => {
     const map: Record<string, number> = {};
     patientData.forEach((row) => {
-      if (row.Status) {
-        map[row.Status] = (map[row.Status] || 0) + 1;
-      }
+      const norm = normalizeStatus(row.Status);
+      map[norm] = (map[norm] || 0) + 1;
     });
     return map;
   }, [patientData]);

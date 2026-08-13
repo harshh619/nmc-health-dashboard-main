@@ -10,13 +10,42 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const GOOGLE_SHEETS_CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vT_77OEOeI0MVDxYCbcTlq_Ld7Oq5CFSTC6LyYyAwQGyiHHSJhBvniVns4djzswkQSGNGT2_09r0LUA/pub?gid=0&single=true&output=csv';
 
-export function formatStatusDisplay(status?: string): string {
-  if (!status) return 'Active';
+export function normalizeStatus(status?: any): string {
+  if (status === undefined || status === null) return 'Active';
   const str = String(status).trim();
-  if (str.toLowerCase() === 'death') {
+  if (
+    !str ||
+    str.toLowerCase() === 'undefined' ||
+    str.toLowerCase() === 'null' ||
+    str.toLowerCase() === 'n/a' ||
+    str.toLowerCase() === 'none'
+  ) {
+    return 'Active';
+  }
+  const lower = str.toLowerCase();
+  if (
+    lower === 'death' ||
+    lower === 'suspected death' ||
+    lower === 'deceased' ||
+    lower === 'suspected_death'
+  ) {
     return 'Suspected Death';
   }
-  return str;
+  if (
+    lower === 'recovered' ||
+    lower === 'discharged' ||
+    lower === 'discharge'
+  ) {
+    return 'Recovered';
+  }
+  if (lower === 'active') {
+    return 'Active';
+  }
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+export function formatStatusDisplay(status?: string): string {
+  return normalizeStatus(status);
 }
 
 export function sortPatientRecordsById(records: PatientRecord[]): PatientRecord[] {
@@ -210,7 +239,7 @@ export async function fetchPatientData(): Promise<{ data: PatientRecord[]; dataS
             Zone: resolvedZone,
             Lat: row.Lat || row.lat || row.Latitude || row.latitude,
             Long: row.Long || row.long || row.Longitude || row.longitude,
-            Status: row.Status || row.status || 'Active',
+            Status: normalizeStatus(row.Status || row.status),
             Age: Number(age),
             Gender: gender,
             Date: normalizeDateString(row.Date || row.date || row.created_at),
@@ -269,7 +298,7 @@ export async function fetchPatientData(): Promise<{ data: PatientRecord[]; dataS
             Zone: resolvedCsvZone,
             Lat: isNaN(lat) ? undefined : lat,
             Long: isNaN(long) ? undefined : long,
-            Status: record.Status || 'Active',
+            Status: normalizeStatus(record.Status || record.status),
             Age: isNaN(ageVal) ? Math.floor(10 + ((i * 7) % 75)) : ageVal,
             Gender: gender,
             Date: normalizeDateString(record.Date || new Date().toISOString().split('T')[0]),

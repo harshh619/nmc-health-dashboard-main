@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Download, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PatientRecord } from '../lib/types';
 import { cleanWardName, getZoneForWard } from '../lib/wardMapping';
-import { formatDateDisplay, sortPatientRecordsById, formatStatusDisplay } from '../lib/supabase';
+import { formatDateDisplay, sortPatientRecordsById, formatStatusDisplay, normalizeStatus } from '../lib/supabase';
 
 interface PatientDataTableProps {
   patientData: PatientRecord[];
@@ -27,7 +27,7 @@ export default function PatientDataTable({
       String(row.Disease || '').toLowerCase().includes(term) ||
       String(row.Ward_Name || '').toLowerCase().includes(term) ||
       String(row.Zone || '').toLowerCase().includes(term) ||
-      String(row.Status || '').toLowerCase().includes(term)
+      normalizeStatus(row.Status).toLowerCase().includes(term)
     );
   });
 
@@ -186,10 +186,9 @@ export default function PatientDataTable({
                   <td className="p-3">
                     <span
                       className={`font-semibold px-2 py-0.5 rounded-full border text-[11px] ${
-                        (row.Status || '').toLowerCase().includes('recover') ||
-                        (row.Status || '').toLowerCase().includes('discharge')
+                        normalizeStatus(row.Status) === 'Recovered'
                           ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/80'
-                          : (row.Status || '').toLowerCase().includes('active')
+                          : normalizeStatus(row.Status) === 'Active'
                           ? 'bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/80'
                           : 'bg-rose-50 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/80'
                       }`}

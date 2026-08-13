@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { PatientRecord, UserSession } from '../lib/types';
 import { cleanWardName, WARD_TO_ZONE_MAP, getZoneForWard } from '../lib/wardMapping';
-import { formatStatusDisplay } from '../lib/supabase';
+import { formatStatusDisplay, normalizeStatus } from '../lib/supabase';
 
 interface SidebarFiltersProps {
   allPatientData: PatientRecord[];
@@ -104,9 +104,11 @@ export default function SidebarFilters({
   }, [allPatientData]);
 
   const allStatuses = useMemo(() => {
-    return Array.from(
-      new Set(allPatientData.map((d) => d.Status).filter((s): s is string => Boolean(s)))
-    ).sort();
+    const set = new Set<string>();
+    allPatientData.forEach((d) => {
+      set.add(normalizeStatus(d.Status));
+    });
+    return Array.from(set).sort();
   }, [allPatientData]);
 
   const allGenders = ['Male', 'Female'];

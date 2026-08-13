@@ -445,10 +445,10 @@ export default function AnalyticsCharts({
             </h3>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-xs text-center border-collapse">
+              <table className="w-full text-xs text-center border-separate border-spacing-0">
                 <thead>
                   <tr>
-                    <th className="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-left font-bold rounded-tl">
+                    <th className="sticky left-0 z-20 p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-left font-bold rounded-tl min-w-[120px] max-w-[140px] shadow-[2px_0_5px_-1px_rgba(0,0,0,0.1)] border-r border-slate-200 dark:border-slate-700">
                       Zone / Region
                     </th>
                     {diseasesSet.map((d) => (
@@ -464,7 +464,7 @@ export default function AnalyticsCharts({
                 <tbody>
                   {sortedZonesSet.map((z) => (
                     <tr key={z} className="border-t border-slate-100 dark:border-slate-800">
-                      <td className="p-1.5 text-left font-semibold text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 truncate max-w-[110px]">
+                      <td className="sticky left-0 z-10 p-1.5 text-left font-semibold text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-900 truncate min-w-[120px] max-w-[140px] shadow-[2px_0_5px_-1px_rgba(0,0,0,0.1)] border-r border-slate-200 dark:border-slate-800">
                         {z}
                       </td>
                       {diseasesSet.map((d) => {

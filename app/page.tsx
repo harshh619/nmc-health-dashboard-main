@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { PatientRecord, WeatherData, UserSession } from '../lib/types';
-import { fetchPatientData, supabase } from '../lib/supabase';
+import { fetchPatientData, supabase, normalizeStatus } from '../lib/supabase';
 import { cleanWardName, WARD_TO_ZONE_MAP, getZoneForWard } from '../lib/wardMapping';
 import { getUserSession, clearUserSession } from '../lib/authConfig';
 import { isVerificationPending } from '../lib/fieldVerificationSync';
@@ -258,11 +258,13 @@ export default function Home() {
       )
         return false;
 
-      if (
-        selectedStatuses.length > 0 &&
-        (!row.Status || !selectedStatuses.includes(row.Status))
-      )
-        return false;
+      if (selectedStatuses.length > 0) {
+        const rowStatus = normalizeStatus(row.Status);
+        const matches = selectedStatuses.some(
+          (sel) => normalizeStatus(sel) === rowStatus
+        );
+        if (!matches) return false;
+      }
 
       if (
         selectedGenders.length > 0 &&

@@ -9,7 +9,7 @@ import { Play, Pause, RotateCcw, FastForward, Film } from 'lucide-react';
 
 import { PatientRecord, GeoJsonData } from '../lib/types';
 import { cleanWardName, WARD_TO_ZONE_MAP } from '../lib/wardMapping';
-import { formatDateDisplay } from '../lib/supabase';
+import { formatDateDisplay, formatStatusDisplay, normalizeStatus } from '../lib/supabase';
 
 interface SurveillanceMapProps {
   patientData: PatientRecord[];
@@ -385,7 +385,7 @@ export default function SurveillanceMap({
             <div>Ward: <b>Prabhag ${cleanWardName(row.Ward_Name)}</b></div>
             <div>Zone: <b>${row.Zone || 'Unknown Zone'}</b></div>
             <div>Date: <b>${formatDateDisplay(row.Date)}</b></div>
-            <div>Status: <b style="color: ${row.Status === 'Recovered' ? '#059669' : row.Status === 'Deceased' ? '#dc2626' : '#d97706'}">${row.Status || 'Active'}</b></div>
+            <div>Status: <b style="color: ${normalizeStatus(row.Status) === 'Recovered' ? '#059669' : normalizeStatus(row.Status) === 'Suspected Death' ? '#dc2626' : '#d97706'}">${formatStatusDisplay(row.Status)}</b></div>
           </div>
           <div style="display: flex; gap: 4px; margin-top: 4px;">
             <a href="${gMapsUrl}" target="_blank" style="flex: 1; text-align: center; background: #2563eb; color: #fff; padding: 3px 0; border-radius: 4px; font-size: 9px; font-weight: 700; text-decoration: none;">📍 Google Maps</a>

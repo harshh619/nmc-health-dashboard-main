@@ -143,17 +143,14 @@ export default function SurveillanceMap({
     const getResponsiveInitialZoom = (): number => {
       if (typeof window === 'undefined') return 11.7;
       const w = window.innerWidth;
-      if (w < 480) return 10.3;  // Mobile portrait (fits 100% Nagpur wards)
-      if (w < 768) return 10.6;  // Small tablet / large phone
-      if (w < 1024) return 11.0; // Tablet
+      if (w < 480) return 11.2;  // Mobile portrait (fills 100% of card like Image 2)
+      if (w < 768) return 11.4;  // Small tablet / large phone
+      if (w < 1024) return 11.5; // Tablet
       return 11.7;               // Desktop
     };
 
     const getResponsiveInitialCenter = (): [number, number] => {
-      if (typeof window === 'undefined') return [21.142, 79.082];
-      const w = window.innerWidth;
-      if (w < 480) return [21.145, 79.070]; // slightly centered for narrow portrait
-      return [21.142, 79.082];
+      return [21.1458, 79.0882]; // Exact center of Nagpur city
     };
 
     const savedLat = sessionStorage.getItem('mapLat');
@@ -505,20 +502,22 @@ export default function SurveillanceMap({
       }
     }
 
-    // Auto-fit bounds
+    // Auto-fit bounds ONLY when specific ward filter is selected
     const currentFilterKey = `${selectedWards.join(',')}_${mapMode}_${playbackEnabled}`;
     if (prevFilterStateRef.current !== currentFilterKey) {
       prevFilterStateRef.current = currentFilterKey;
 
-      const activeBounds = L.latLngBounds([]);
-      filteredPatientData.forEach((row) => {
-        if (row.Lat && row.Long && !isNaN(Number(row.Lat)) && !isNaN(Number(row.Long))) {
-          activeBounds.extend([Number(row.Lat), Number(row.Long)]);
-        }
-      });
+      if (selectedWards.length > 0) {
+        const activeBounds = L.latLngBounds([]);
+        filteredPatientData.forEach((row) => {
+          if (row.Lat && row.Long && !isNaN(Number(row.Lat)) && !isNaN(Number(row.Long))) {
+            activeBounds.extend([Number(row.Lat), Number(row.Long)]);
+          }
+        });
 
-      if (activeBounds.isValid() && filteredPatientData.length > 0 && !sessionStorage.getItem('mapLat')) {
-        map.fitBounds(activeBounds, { padding: [40, 40], maxZoom: 14, animate: true });
+        if (activeBounds.isValid()) {
+          map.fitBounds(activeBounds, { padding: [30, 30], maxZoom: 14, animate: true });
+        }
       }
     }
   }, [geoData, filteredPatientData, mapMode, diseaseColorMap, playbackEnabled, selectedWards]);

@@ -144,11 +144,15 @@ function syncAllExistingRows() {
 
   for (var h = 0; h < headers.length; h++) {
     var norm = headers[h].toLowerCase().replace(/\s+/g, '_');
-    if (norm === "patient_id") idCol = h;
+    if (norm === "patient_id" || norm === "id" || norm === "patient_no" || norm.indexOf("patient") !== -1 || norm.indexOf("id") !== -1) {
+      if (idCol === -1) idCol = h;
+    }
     if (norm === "patient_name" || norm === "name") nameCol = h;
     if (norm === "date") dateCol = h;
     if (norm === "disease") diseaseCol = h;
-    if (norm === "ward_name" || norm === "ward") wardCol = h;
+    if (norm === "ward_name" || norm === "ward" || norm.indexOf("prabhag") !== -1 || norm.indexOf("ward") !== -1) {
+      if (wardCol === -1) wardCol = h;
+    }
     if (norm === "lat" || norm === "latitude") latCol = h;
     if (norm === "long" || norm === "longitude") longCol = h;
     if (norm === "status") statusCol = h;
@@ -157,8 +161,7 @@ function syncAllExistingRows() {
 
   if (idCol === -1) idCol = 0;
 
-  var sheetPatientIds = [];
-  var payloadArray = [];
+  var successCount = 0;
 
   for (var i = 1; i < rows.length; i++) {
     var rowData = rows[i];
@@ -166,8 +169,8 @@ function syncAllExistingRows() {
 
     if (rawId === "" || rawId === null || rawId === undefined) continue;
 
-    var parsedId = parseInt(rawId, 10);
-    var currentId = !isNaN(parsedId) ? parsedId : rawId;
+    var cleanDigits = String(rawId).replace(/\D+/g, "");
+    var currentId = cleanDigits ? parseInt(cleanDigits, 10) : rawId;
 
     var wardVal = wardCol !== -1 && rowData[wardCol] ? formatFullWardName(rowData[wardCol]) : "Unassigned";
     var zoneVal = zoneCol !== -1 && rowData[zoneCol] ? String(rowData[zoneCol]).trim() : "";
@@ -183,85 +186,37 @@ function syncAllExistingRows() {
       }
     }
 
-    var item = {
-      "Patient_ID": currentId,
-      "Patient_Name": nameCol !== -1 && rowData[nameCol] ? String(rowData[nameCol]) : "Patient " + currentId,
-      "Date": dateCol !== -1 ? formatSupabaseDate(rowData[dateCol]) : new Date().toISOString(),
-      "Disease": diseaseCol !== -1 && rowData[diseaseCol] ? String(rowData[diseaseCol]) : "Unknown",
+    var patchPayload = {
       "Ward_Name": wardVal,
-      "Lat": latCol !== -1 && parseFloat(rowData[latCol]) ? parseFloat(rowData[latCol]) : null,
-      "Long": longCol !== -1 && parseFloat(rowData[longCol]) ? parseFloat(rowData[longCol]) : null,
-      "Status": statusCol !== -1 && rowData[statusCol] ? String(rowData[statusCol]) : "Active",
-      "Zone": zoneVal ? zoneVal : null
+      "Lat": (latCol !== -1 && rowData[latCol] !== "" && rowData[latCol] !== null && !isNaN(parseFloat(rowData[latCol]))) ? parseFloat(rowData[latCol]) : null,
+      "Long": (longCol !== -1 && rowData[longCol] !== "" && rowData[longCol] !== null && !isNaN(parseFloat(rowData[longCol]))) ? parseFloat(rowData[longCol]) : null,
+      "Zone": zoneVal ? zoneVal : "Unassigned"
     };
 
-    sheetPatientIds.push(String(currentId));
-    payloadArray.push(item);
-  }
-
-  var headersConfig = {
-    'apikey': SUPABASE_KEY,
-    'Authorization': 'Bearer ' + SUPABASE_KEY,
-    'Content-Type': 'application/json',
-    'Range': '0-100000'
-  };
-
-  try {
-    var getOptions = {
-      'method': 'get',
-      'headers': headersConfig,
+    var patchUrl = SUPABASE_URL + "?Patient_ID=eq." + encodeURIComponent(currentId);
+    var patchOptions = {
+      'method': 'patch',
+      'contentType': 'application/json',
+      'headers': {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Prefer': 'return=representation'
+      },
+      'payload': JSON.stringify(patchPayload),
       'muteHttpExceptions': true
     };
-    var getResponse = UrlFetchApp.fetch(SUPABASE_URL + "?select=Patient_ID", getOptions);
-    var supabaseData = JSON.parse(getResponse.getContentText());
 
-    var supabaseIds = (Array.isArray(supabaseData) ? supabaseData : []).map(function(row) {
-      return String(row.Patient_ID);
-    });
-
-    var idsToDelete = supabaseIds.filter(function(id) {
-      return sheetPatientIds.indexOf(id) === -1;
-    });
-
-    if (idsToDelete.length > 0) {
-      var deleteUrl = SUPABASE_URL + "?Patient_ID=in.(" + idsToDelete.join(",") + ")";
-      var deleteOptions = {
-        'method': 'delete',
-        'headers': headersConfig,
-        'muteHttpExceptions': true
-      };
-      UrlFetchApp.fetch(deleteUrl, deleteOptions);
-      Logger.log("Deleted " + idsToDelete.length + " rows from Supabase.");
-    }
-
-    if (payloadArray.length > 0) {
-      for (var k = 0; k < payloadArray.length; k++) {
-        var rowPayload = payloadArray[k];
-        var patchUrl = SUPABASE_URL + "?Patient_ID=eq." + encodeURIComponent(rowPayload.Patient_ID);
-        var patchOptions = {
-          'method': 'patch',
-          'contentType': 'application/json',
-          'headers': {
-            'apikey': SUPABASE_KEY,
-            'Authorization': 'Bearer ' + SUPABASE_KEY,
-            'Prefer': 'return=representation'
-          },
-          'payload': JSON.stringify({
-            'Ward_Name': rowPayload.Ward_Name,
-            'Lat': rowPayload.Lat,
-            'Long': rowPayload.Long,
-            'Zone': rowPayload.Zone
-          }),
-          'muteHttpExceptions': true
-        };
-        UrlFetchApp.fetch(patchUrl, patchOptions);
+    try {
+      var res = UrlFetchApp.fetch(patchUrl, patchOptions);
+      if (res.getResponseCode() >= 200 && res.getResponseCode() < 300) {
+        successCount++;
       }
-      Logger.log("Bulk Sync completed for " + payloadArray.length + " rows.");
+    } catch (e) {
+      Logger.log("Row " + i + " sync error: " + e.toString());
     }
-
-  } catch (err) {
-    Logger.log("Bulk Sync Error: " + err.toString());
   }
+
+  Logger.log("Bulk Sync Completed! Successfully synced " + successCount + " rows to Supabase.");
 }
 
 // =====================================================================

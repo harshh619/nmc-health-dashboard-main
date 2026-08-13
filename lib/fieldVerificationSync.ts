@@ -83,12 +83,12 @@ export async function submitFieldVerification(
 
   let supabaseSuccess = false;
 
-  // 1. Direct REST PATCH to Supabase Database (Updates existing row by Patient_ID)
+  // 1. Direct REST PATCH to Supabase Database (Updates existing row by Patient_ID or id)
   // Try numeric ID first for Postgres bigint column
   if (numericId !== null) {
     try {
       const res = await fetch(
-        `https://oysmagibpobxsipxjzpd.supabase.co/rest/v1/patients_data?Patient_ID=eq.${numericId}`,
+        `https://oysmagibpobxsipxjzpd.supabase.co/rest/v1/patients_data?or=(Patient_ID.eq.${numericId},id.eq.${numericId})`,
         {
           method: 'PATCH',
           headers: {
@@ -115,7 +115,7 @@ export async function submitFieldVerification(
   if (!supabaseSuccess) {
     try {
       const res = await fetch(
-        `https://oysmagibpobxsipxjzpd.supabase.co/rest/v1/patients_data?Patient_ID=eq.${encodeURIComponent(String(targetPatientId))}`,
+        `https://oysmagibpobxsipxjzpd.supabase.co/rest/v1/patients_data?or=(Patient_ID.eq.${encodeURIComponent(String(targetPatientId))},id.eq.${encodeURIComponent(String(targetPatientId))})`,
         {
           method: 'PATCH',
           headers: {
@@ -142,7 +142,7 @@ export async function submitFieldVerification(
   if (!supabaseSuccess) {
     try {
       const res = await fetch(
-        `https://oysmagibpobxsipxjzpd.supabase.co/rest/v1/patients_data?Patient_ID=eq.${encodeURIComponent(String(payload.patientId))}`,
+        `https://oysmagibpobxsipxjzpd.supabase.co/rest/v1/patients_data?or=(Patient_ID.eq.${encodeURIComponent(String(payload.patientId))},id.eq.${encodeURIComponent(String(payload.patientId))})`,
         {
           method: 'PATCH',
           headers: {

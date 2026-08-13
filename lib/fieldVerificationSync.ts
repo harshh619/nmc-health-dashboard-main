@@ -79,6 +79,7 @@ export async function submitFieldVerification(
     Lat: payload.lat,
     Long: payload.long,
     Zone: autoZone || payload.zone || 'Unassigned',
+    Location_Photo_Url: payload.locationPhotoUrl || null,
   };
 
   let supabaseSuccess = false;
@@ -233,7 +234,7 @@ export async function submitFieldVerification(
           wardName: formattedWard,
           lat: payload.lat,
           long: payload.long,
-          locationPhotoUrl: payload.locationPhotoUrl || '',
+          locationPhotoUrl: payload.locationPhotoUrl ? 'Photo Uploaded to DB' : '',
           verifiedBy: payload.verifiedBy,
           verifiedAt: verifiedTimestamp,
         }),

@@ -171,23 +171,33 @@ export default function FieldVerificationModal({
           // Embed GPS coordinates into the image using Canvas
           const img = new Image();
           img.onload = () => {
+            // Scale down the image to a maximum width of 1000px to reduce Base64 size
+            const MAX_WIDTH = 1000;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+
             const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
+            canvas.width = width;
+            canvas.height = height;
             const ctx = canvas.getContext('2d');
             
             if (ctx) {
-              // Draw original image
-              ctx.drawImage(img, 0, 0);
+              // Draw original image scaled down
+              ctx.drawImage(img, 0, 0, width, height);
               
               // Calculate responsive text size based on image width
-              const fontSize = Math.max(14, Math.floor(img.width * 0.03));
+              const fontSize = Math.max(14, Math.floor(width * 0.03));
               const padding = fontSize;
               const boxHeight = (fontSize * 2) + padding;
               
               // Draw a semi-transparent black strip at the bottom for readability
               ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-              ctx.fillRect(0, img.height - boxHeight, img.width, boxHeight);
+              ctx.fillRect(0, height - boxHeight, width, boxHeight);
               
               // Draw text (Lat, Long, Date)
               ctx.fillStyle = '#ffffff';
@@ -197,14 +207,13 @@ export default function FieldVerificationModal({
               const geoText = `Lat: ${lat || 'N/A'}, Long: ${long || 'N/A'}`;
               const dateText = `Date: ${new Date().toLocaleString()}`;
               
-              ctx.fillText(geoText, padding, img.height - boxHeight + (padding / 2));
-              ctx.fillText(dateText, padding, img.height - boxHeight + (padding / 2) + fontSize + 2);
+              ctx.fillText(geoText, padding, height - boxHeight + (padding / 2));
+              ctx.fillText(dateText, padding, height - boxHeight + (padding / 2) + fontSize + 2);
               
-              // Get the watermarked image data
-              const watermarkedUrl = canvas.toDataURL('image/jpeg', 0.85);
+              // Get the watermarked image data with aggressive compression
+              const watermarkedUrl = canvas.toDataURL('image/jpeg', 0.7);
               setPhotoDataUrl(watermarkedUrl);
             } else {
-              // Fallback if canvas is not supported
               setPhotoDataUrl(reader.result as string);
             }
           };

@@ -483,13 +483,13 @@ export default function FieldVerificationModal({
                 className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 rounded-xl p-3 cursor-pointer bg-slate-50 dark:bg-slate-800/50 transition-colors"
               >
                 {photoDataUrl ? (
-                  <div className="relative w-full h-36 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                  <div className="relative w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-900 flex items-center justify-center">
                     <img
                       src={photoDataUrl}
                       alt="Location preview"
-                      className="w-full h-full object-cover"
+                      className="w-full max-h-64 object-contain"
                     />
-                    <div className="absolute top-2 right-2 bg-slate-900/80 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
+                    <div className="absolute top-2 right-2 bg-slate-900/80 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm">
                       ✓ Photo Attached
                     </div>
                   </div>

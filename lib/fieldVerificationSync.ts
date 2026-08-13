@@ -46,6 +46,18 @@ export function isVerificationPending(record: PatientRecord): boolean {
   return false;
 }
 
+export function parseNumericPatientId(id?: any): number | null {
+  if (id === undefined || id === null) return null;
+  if (typeof id === 'number' && !isNaN(id)) return id;
+  const str = String(id).trim();
+  const digitsOnly = str.replace(/\D+/g, '');
+  if (digitsOnly) {
+    const num = parseInt(digitsOnly, 10);
+    if (!isNaN(num)) return num;
+  }
+  return null;
+}
+
 const SUPABASE_SERVICE_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95c21hZ2licG9ieHNpcHhqenBkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTI5NjQ5OSwiZXhwIjoyMTAwODcyNDk5fQ.POUgfgnf89TVWp46ZKIoqP3KykWgFA2jsbgMoEjMYUY';
 
@@ -57,8 +69,8 @@ export async function submitFieldVerification(
 ): Promise<{ success: boolean; message: string }> {
   const verifiedTimestamp = payload.verifiedAt || new Date().toISOString();
 
-  const pIdNum = parseInt(String(payload.patientId), 10);
-  const targetPatientId = !isNaN(pIdNum) ? pIdNum : payload.patientId;
+  const numericId = parseNumericPatientId(payload.patientId);
+  const targetPatientId = numericId !== null ? numericId : payload.patientId;
   const formattedWard = formatFullWardName(payload.wardName);
   const autoZone = getZoneForWard(formattedWard, payload.zone);
 
@@ -72,28 +84,58 @@ export async function submitFieldVerification(
   let supabaseSuccess = false;
 
   // 1. Direct REST PATCH to Supabase Database (Updates existing row by Patient_ID)
-  try {
-    const res = await fetch(
-      `https://oysmagibpobxsipxjzpd.supabase.co/rest/v1/patients_data?Patient_ID=eq.${encodeURIComponent(String(targetPatientId))}`,
-      {
-        method: 'PATCH',
-        headers: {
-          apikey: SUPABASE_SERVICE_KEY,
-          Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Content-Type': 'application/json',
-          Prefer: 'return=representation',
-        },
-        body: JSON.stringify(updateFields),
+  // Try numeric ID first for Postgres bigint column
+  if (numericId !== null) {
+    try {
+      const res = await fetch(
+        `https://oysmagibpobxsipxjzpd.supabase.co/rest/v1/patients_data?Patient_ID=eq.${numericId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            apikey: SUPABASE_SERVICE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+            'Content-Type': 'application/json',
+            Prefer: 'return=representation',
+          },
+          body: JSON.stringify(updateFields),
+        }
+      );
+      if (res.ok) {
+        const updatedRows = await res.json();
+        if (Array.isArray(updatedRows) && updatedRows.length > 0) {
+          supabaseSuccess = true;
+        }
       }
-    );
-    if (res.ok) {
-      const updatedRows = await res.json();
-      if (Array.isArray(updatedRows) && updatedRows.length > 0) {
-        supabaseSuccess = true;
-      }
+    } catch (err) {
+      console.warn('Supabase REST PATCH (numericId) error:', err);
     }
-  } catch (err) {
-    console.warn('Supabase REST PATCH error:', err);
+  }
+
+  // Fallback REST PATCH with targetPatientId
+  if (!supabaseSuccess) {
+    try {
+      const res = await fetch(
+        `https://oysmagibpobxsipxjzpd.supabase.co/rest/v1/patients_data?Patient_ID=eq.${encodeURIComponent(String(targetPatientId))}`,
+        {
+          method: 'PATCH',
+          headers: {
+            apikey: SUPABASE_SERVICE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+            'Content-Type': 'application/json',
+            Prefer: 'return=representation',
+          },
+          body: JSON.stringify(updateFields),
+        }
+      );
+      if (res.ok) {
+        const updatedRows = await res.json();
+        if (Array.isArray(updatedRows) && updatedRows.length > 0) {
+          supabaseSuccess = true;
+        }
+      }
+    } catch (err) {
+      console.warn('Supabase REST PATCH error:', err);
+    }
   }
 
   // Fallback REST PATCH with raw payload.patientId

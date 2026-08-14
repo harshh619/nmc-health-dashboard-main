@@ -336,10 +336,10 @@ function doPost(e) {
     }
 
     if (idCol === -1) idCol = 0;
-    // अगर Sheet में Remark नाम का हेडर नहीं मिला, तो by default Column J (Index 9) को यूज़ करेगा
-    if (remarkCol === -1) remarkCol = 9; 
-    // अगर Sheet में User Mobile Number नाम का हेडर नहीं मिला, तो by default Column K (Index 10) को यूज़ करेगा
-    if (mobileCol === -1) mobileCol = 10; 
+    // अगर Sheet में User Mobile Number नाम का हेडर नहीं मिला, तो by default Column J (Index 9) को यूज़ करेगा
+    if (mobileCol === -1) mobileCol = 9; 
+    // अगर Sheet में Remark नाम का हेडर नहीं मिला, तो by default Column K (Index 10) को यूज़ करेगा
+    if (remarkCol === -1) remarkCol = 10; 
 
     var autoZone = data.zone || getZoneFromWard(data.wardName);
 

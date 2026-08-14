@@ -24,6 +24,7 @@ interface CommandToolbarProps {
   onLogout?: () => void;
   pendingVerificationsCount?: number;
   onToggleFieldTracker?: () => void;
+  isFieldTrackerVisible?: boolean;
 }
 
 export default function CommandToolbar({
@@ -33,6 +34,7 @@ export default function CommandToolbar({
   onLogout,
   pendingVerificationsCount,
   onToggleFieldTracker,
+  isFieldTrackerVisible = false,
 }: CommandToolbarProps) {
   const [darkMode, setDarkMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -112,7 +114,11 @@ export default function CommandToolbar({
         {onToggleFieldTracker && (
           <button
             onClick={onToggleFieldTracker}
-            className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
+            className={`p-1.5 sm:px-2.5 sm:py-1 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all active:scale-95 ${
+              isFieldTrackerVisible
+                ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-sm'
+                : 'bg-rose-600 hover:bg-rose-700 text-white shadow-[0_0_12px_rgba(225,29,72,0.8)] animate-pulse'
+            }`}
             title="Field Location & Photo Verification Queue"
           >
             <Navigation className="w-3.5 h-3.5" />

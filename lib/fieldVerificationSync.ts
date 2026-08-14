@@ -19,6 +19,7 @@ export interface FieldVerificationPayload {
   locationPhotoUrl?: string;
   verifiedBy: string;
   verifiedAt?: string;
+  remarks?: string;
 }
 
 /**
@@ -80,6 +81,7 @@ export async function submitFieldVerification(
     Long: payload.long,
     Zone: autoZone || payload.zone || 'Unassigned',
     Location_Photo_Url: payload.locationPhotoUrl || null,
+    Remarks: payload.remarks || null,
   };
 
   let supabaseSuccess = false;
@@ -210,6 +212,7 @@ export async function submitFieldVerification(
               Lat: payload.lat,
               Long: payload.long,
               Zone: payload.zone || 'Unassigned',
+              Remarks: payload.remarks || null,
             },
           ]),
         }
@@ -237,6 +240,7 @@ export async function submitFieldVerification(
           locationPhotoUrl: payload.locationPhotoUrl ? 'Photo Uploaded to DB' : '',
           verifiedBy: payload.verifiedBy,
           verifiedAt: verifiedTimestamp,
+          remarks: payload.remarks || '',
         }),
       });
     } catch (err) {

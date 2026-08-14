@@ -66,7 +66,7 @@ export default function Home() {
   const [dataSource, setDataSource] = useState('Loading...');
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [showFieldTracker, setShowFieldTracker] = useState(true);
+  const [showFieldTracker, setShowFieldTracker] = useState(false);
 
   // Weather state & live update timestamp
   const [weather, setWeather] = useState<WeatherData>({
@@ -399,6 +399,7 @@ export default function Home() {
               onLogout={handleLogout}
               pendingVerificationsCount={pendingVerificationCount}
               onToggleFieldTracker={() => setShowFieldTracker(!showFieldTracker)}
+              isFieldTrackerVisible={showFieldTracker}
             />
 
             {/* Real-Time Field Verification & GPS/Photo Location Tracker Widget */}

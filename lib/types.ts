@@ -15,6 +15,7 @@ export interface PatientRecord {
   Location_Photo_Url?: string;
   Verified_By?: string;
   Verified_At?: string;
+  Remarks?: string;
 }
 
 export interface WeatherData {

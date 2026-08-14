@@ -44,6 +44,8 @@ export default function FieldVerificationModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>('');
   const [geoData, setGeoData] = useState<any>(null);
+  const [remarks, setRemarks] = useState<string>('');
+  const [isReportingIssue, setIsReportingIssue] = useState(false);
 
   // Fetch GeoJSON boundary data for map point-in-polygon verification
   useEffect(() => {
@@ -228,18 +230,23 @@ export default function FieldVerificationModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedWard) {
+    if (!isReportingIssue && !selectedWard) {
       setSubmitError('Please select/confirm the Ward (Prabhag) Name.');
       return;
     }
 
-    if (lat === '' || long === '' || isNaN(Number(lat)) || isNaN(Number(long))) {
+    if (!isReportingIssue && (lat === '' || long === '' || isNaN(Number(lat)) || isNaN(Number(long)))) {
       setSubmitError('Please capture or enter valid Latitude and Longitude coordinates.');
       return;
     }
 
+    if (isReportingIssue && !remarks.trim()) {
+      setSubmitError('Please enter a remark detailing why this patient does not belong to your zone.');
+      return;
+    }
+
     // Strict Spatial Boundary Guard: Prevent submission of mismatched/fake location or ward selection
-    if (geoData) {
+    if (!isReportingIssue && geoData) {
       if (!detectedWardFromGps) {
         setSubmitError(
           `🚨 Invalid Location Coordinates: The captured GPS location (${lat}, ${long}) lies OUTSIDE Nagpur Municipal Corporation (NMC) ward boundaries. Please capture valid coordinates within Nagpur.`
@@ -256,6 +263,14 @@ export default function FieldVerificationModal({
         );
         return;
       }
+      
+      // Strict Zone Guard: Prevent employee from submitting if the ward is not in their allowed list
+      if (cleanSelected && !availableWards.includes(cleanSelected)) {
+        setSubmitError(
+          `🚨 Zone Restriction Blocked: Prabhag No. ${cleanSelected} does not belong to your assigned zone (${patient.Zone || userSession?.assignedZone || 'Unknown'}). You can only submit data for your assigned wards.`
+        );
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -269,11 +284,12 @@ export default function FieldVerificationModal({
         status: patient.Status || 'Active',
         date: patient.Date || new Date().toISOString().split('T')[0],
         zone: patient.Zone || userSession?.assignedZone || 'Unknown Zone',
-        wardName: formatFullWardName(selectedWard),
-        lat: Number(lat),
-        long: Number(long),
+        wardName: formatFullWardName(selectedWard || 'Unassigned'),
+        lat: Number(lat || 0),
+        long: Number(long || 0),
         locationPhotoUrl: photoDataUrl,
         verifiedBy: userSession?.displayName || 'Field Officer',
+        remarks: remarks,
       });
 
       if (res.success) {
@@ -501,6 +517,37 @@ export default function FieldVerificationModal({
                 )}
               </label>
             </div>
+          </div>
+
+          {/* Issue Reporting / Remarks Section */}
+          <div className="space-y-2 p-3 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800">
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isReportingIssue}
+                onChange={(e) => {
+                  setIsReportingIssue(e.target.checked);
+                  if (e.target.checked) setSubmitError('');
+                }}
+                className="mt-0.5 w-4 h-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+              />
+              <div className="text-xs">
+                <span className="font-bold text-slate-800 dark:text-slate-200 block">Flag as Issue / Not My Zone</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">Check this if the patient belongs to another zone and you cannot verify them. GPS and Photo will be optional.</span>
+              </div>
+            </label>
+            
+            {isReportingIssue && (
+              <div className="mt-2">
+                <textarea
+                  value={remarks}
+                  onChange={(e) => setRemarks(e.target.value)}
+                  placeholder="Enter remarks (e.g. 'This address belongs to Zone 2, please reassign...')"
+                  className="w-full px-3 py-2 rounded-xl border border-orange-300 dark:border-orange-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 min-h-[60px]"
+                  required
+                />
+              </div>
+            )}
           </div>
 
           {submitError && (

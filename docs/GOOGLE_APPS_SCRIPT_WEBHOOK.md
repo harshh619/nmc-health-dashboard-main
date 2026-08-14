@@ -307,7 +307,7 @@ function onEdit(e) {
 }
 
 // =====================================================================
-// 3. RECEIVE FIELD VERIFICATION FROM APP AND UPDATE GOOGLE SHEET
+// 3. RECEIVE FIELD VERIFICATION FROM DASHBOARD APP AND UPDATE GOOGLE SHEET + SUPABASE
 // =====================================================================
 function doPost(e) {
   try {
@@ -316,43 +316,79 @@ function doPost(e) {
     var rows = sheet.getDataRange().getValues();
     var headers = rows[0].map(function(h) { return String(h).trim(); });
 
-    var idCol = -1, zoneCol = -1, wardCol = -1, latCol = -1, longCol = -1, photoCol = -1, statusCol = -1;
+    var idCol = -1, zoneCol = -1, wardCol = -1, latCol = -1, longCol = -1, photoCol = -1, statusCol = -1, remarkCol = -1, mobileCol = -1;
 
     for (var h = 0; h < headers.length; h++) {
       var norm = headers[h].toLowerCase().replace(/\s+/g, '_');
-      if (norm === "patient_id") idCol = h;
+      if (norm === "patient_id" || norm === "id" || norm === "patient_no" || norm.indexOf("patient") !== -1 || norm.indexOf("id") !== -1) {
+        if (idCol === -1) idCol = h;
+      }
       if (norm === "zone") zoneCol = h;
-      if (norm === "ward_name" || norm === "ward") wardCol = h;
+      if (norm === "ward_name" || norm === "ward" || norm.indexOf("prabhag") !== -1 || norm.indexOf("ward") !== -1) {
+        if (wardCol === -1) wardCol = h;
+      }
       if (norm === "lat" || norm === "latitude") latCol = h;
       if (norm === "long" || norm === "longitude") longCol = h;
       if (norm === "location_photo_url") photoCol = h;
       if (norm === "verification_status") statusCol = h;
+      if (norm === "remark" || norm === "remarks") remarkCol = h;
+      if (norm === "user_mobile_number" || norm === "mobile_number" || norm.indexOf("mobile") !== -1) mobileCol = h;
     }
 
     if (idCol === -1) idCol = 0;
+    // अगर Sheet में Remark नाम का हेडर नहीं मिला, तो by default Column J (Index 9) को यूज़ करेगा
+    if (remarkCol === -1) remarkCol = 9; 
+    // अगर Sheet में User Mobile Number नाम का हेडर नहीं मिला, तो by default Column K (Index 10) को यूज़ करेगा
+    if (mobileCol === -1) mobileCol = 10; 
 
     var autoZone = data.zone || getZoneFromWard(data.wardName);
 
     for (var i = 1; i < rows.length; i++) {
-      if (String(rows[i][idCol]) === String(data.patientId)) {
+      var rowCleanId = String(rows[i][idCol]).replace(/\D+/g, "");
+      var dataCleanId = String(data.patientId).replace(/\D+/g, "");
+
+      if (rowCleanId && dataCleanId && rowCleanId === dataCleanId) {
         if (autoZone && zoneCol !== -1) sheet.getRange(i + 1, zoneCol + 1).setValue(autoZone);
         if (wardCol !== -1 && data.wardName) sheet.getRange(i + 1, wardCol + 1).setValue(formatFullWardName(data.wardName));
         if (latCol !== -1 && data.lat) sheet.getRange(i + 1, latCol + 1).setValue(data.lat);
         if (longCol !== -1 && data.long) sheet.getRange(i + 1, longCol + 1).setValue(data.long);
         if (photoCol !== -1 && data.locationPhotoUrl) sheet.getRange(i + 1, photoCol + 1).setValue(data.locationPhotoUrl);
         if (statusCol !== -1) sheet.getRange(i + 1, statusCol + 1).setValue("Verified");
+        
+        // --- ADDED: REMARKS & YELLOW COLOR LOGIC ---
+        if (data.remarks && String(data.remarks).trim() !== "") {
+          sheet.getRange(i + 1, remarkCol + 1).setValue(data.remarks);
+          // Row को Yellow कलर करना
+          sheet.getRange(i + 1, 1, 1, sheet.getLastColumn()).setBackground("#FFFF00"); 
+        } else {
+          // अगर नार्मल केस है, तो बैकग्राउंड वाइट रखें
+          sheet.getRange(i + 1, 1, 1, sheet.getLastColumn()).setBackground("#FFFFFF");
+        }
+        
+        // --- ADDED: MOBILE NUMBER LOGIC ---
+        if (data.mobileNumber && String(data.mobileNumber).trim() !== "") {
+          sheet.getRange(i + 1, mobileCol + 1).setValue(data.mobileNumber);
+        }
+        // -------------------------------------------
         break;
       }
     }
 
-    // Bi-directional safety sync: Also push PATCH directly to Supabase DB
+    // Direct REST PATCH Sync to Supabase DB from Apps Script Webhook
     try {
-      var spUrl = SUPABASE_URL + "?Patient_ID=eq." + encodeURIComponent(data.patientId);
+      var spCleanId = String(data.patientId).replace(/\D+/g, "");
+      var spUrl = SUPABASE_URL + "?Patient_ID=eq." + (spCleanId ? spCleanId : encodeURIComponent(data.patientId));
       var spPayload = {};
       if (data.wardName) spPayload["Ward_Name"] = formatFullWardName(data.wardName);
       if (data.lat) spPayload["Lat"] = parseFloat(data.lat);
       if (data.long) spPayload["Long"] = parseFloat(data.long);
       if (autoZone) spPayload["Zone"] = autoZone;
+      
+      // ADDED: Sync Remarks to Supabase
+      if (data.remarks) spPayload["Remarks"] = data.remarks;
+      
+      // ADDED: Sync Mobile Number to Supabase
+      if (data.mobileNumber) spPayload["Mobile_Number"] = data.mobileNumber;
 
       UrlFetchApp.fetch(spUrl, {
         "method": "patch",
@@ -379,9 +415,9 @@ function doPost(e) {
 
 ---
 
-## ⚡ How to Auto-Fill All 878 Rows Now:
+## ⚡ How to Auto-Fill All Rows Now:
 
 1. Open Google Sheet ➔ **Extensions** ➔ **Apps Script**.
 2. Replace code in `Code.gs` with the snippet above and click **💾 Save**.
 3. Select function **`syncAllExistingRows`** in top dropdown menu and click **▶ Run**.
-4. **All 878 rows in your Google Sheet will auto-fill Column I (Zone) instantly!**
+4. **All rows in your Google Sheet will auto-fill instantly!**

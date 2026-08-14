@@ -63,12 +63,27 @@ export default function AuthModal({ onAuthenticated }: AuthModalProps) {
               }}
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all cursor-pointer"
             >
-              {CREDENTIALS_LIST.map((c) => (
-                <option key={c.username} value={c.username}>
-                  {c.role === 'SUPER_ADMIN' ? '👑 ' : '🏢 '}
-                  {c.displayName} ({c.username})
-                </option>
-              ))}
+              <optgroup label="Headquarters">
+                {CREDENTIALS_LIST.filter((c) => c.role === 'SUPER_ADMIN').map((c) => (
+                  <option key={c.username} value={c.username}>
+                    👑 {c.displayName}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Zonal Medical Officers (Dashboard)">
+                {CREDENTIALS_LIST.filter((c) => c.role === 'ZONE_OFFICER').map((c) => (
+                  <option key={c.username} value={c.username}>
+                    🏢 {c.displayName}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Patient Tracking Users (Field Tracking)">
+                {CREDENTIALS_LIST.filter((c) => c.role === 'FIELD_OFFICER').map((c) => (
+                  <option key={c.username} value={c.username}>
+                    📍 {c.displayName}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </div>
 

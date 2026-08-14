@@ -40,6 +40,11 @@ export function isVerificationPending(record: PatientRecord): boolean {
     record.Ward_Name?.toLowerCase() !== 'unknown' &&
     record.Ward_Name?.trim() !== '';
 
+  // If a tracker has added remarks (e.g. flagged as issue), it's considered actioned/verified
+  if (record.Remarks && record.Remarks.trim() !== '') {
+    return false;
+  }
+
   if (!hasValidLat || !hasValidLong || !hasValidWard) {
     return true;
   }

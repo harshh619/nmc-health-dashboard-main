@@ -87,15 +87,18 @@ export default function CommandToolbar({
           <span>{dataSource}</span>
         </div>
 
-        {/* User Session Profile Badge */}
         {userSession && (
           <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold border ${
             userSession.role === 'SUPER_ADMIN'
               ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800/60'
+              : userSession.role === 'FIELD_OFFICER'
+              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60'
               : 'bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800/60'
           }`}>
             {userSession.role === 'SUPER_ADMIN' ? (
               <Crown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            ) : userSession.role === 'FIELD_OFFICER' ? (
+              <Navigation className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             ) : (
               <Building2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
             )}

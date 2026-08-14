@@ -68,6 +68,8 @@ export default function Home() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showFieldTracker, setShowFieldTracker] = useState(false);
 
+  const isFieldOfficer = userSessionState?.role === 'FIELD_OFFICER';
+
   // Weather state & live update timestamp
   const [weather, setWeather] = useState<WeatherData>({
     temp: 32.5,
@@ -389,13 +391,13 @@ export default function Home() {
             } space-y-2.5`}
           >
             {/* Header Branding Banner */}
-            <HeaderBanner />
+            {!isFieldOfficer && <HeaderBanner />}
 
             {/* Command Toolbar */}
             <CommandToolbar
               dataSource={dataSource}
               onRefresh={loadData}
-              userSession={userSession}
+              userSession={userSessionState}
               onLogout={handleLogout}
               pendingVerificationsCount={pendingVerificationCount}
               onToggleFieldTracker={() => setShowFieldTracker(!showFieldTracker)}
@@ -406,28 +408,32 @@ export default function Home() {
             {showFieldTracker && (
               <FieldTrackerWidget
                 patientData={filteredData}
-                userSession={userSession}
+                userSession={userSessionState}
                 onRefreshData={loadData}
               />
             )}
 
             {/* Active View Context & Bento Metrics Overview */}
-            <MetricsOverview
-              patientData={filteredData}
-              selectedZones={selectedZones}
-              selectedWards={selectedWards}
-              weather={weather}
-              lastUpdated={lastWeatherUpdated}
-            />
+            {!isFieldOfficer && (
+              <MetricsOverview
+                patientData={filteredData}
+                selectedZones={selectedZones}
+                selectedWards={selectedWards}
+                weather={weather}
+                lastUpdated={lastWeatherUpdated}
+              />
+            )}
 
             {/* Automated AI Intelligence Hotspot Warning Banner */}
-            <AiAlertBanner patientData={filteredData} />
+            {!isFieldOfficer && <AiAlertBanner patientData={filteredData} />}
 
             {/* Recharts Visual Analytics */}
-            <AnalyticsCharts
-              patientData={filteredData}
-              diseaseColorMap={diseaseColorMap}
-            />
+            {!isFieldOfficer && (
+              <AnalyticsCharts
+                patientData={filteredData}
+                diseaseColorMap={diseaseColorMap}
+              />
+            )}
 
             {/* React-Leaflet GIS Map with Time-Series Playback */}
             <SurveillanceMap

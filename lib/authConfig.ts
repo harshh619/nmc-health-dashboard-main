@@ -3,7 +3,7 @@ import { UserSession } from './types';
 export interface CredentialEntry {
   username: string;
   password: string;
-  role: 'SUPER_ADMIN' | 'ZONE_OFFICER';
+  role: 'SUPER_ADMIN' | 'ZONE_OFFICER' | 'FIELD_OFFICER';
   assignedZone: string | null;
   displayName: string;
 }
@@ -86,6 +86,17 @@ export const CREDENTIALS_LIST: CredentialEntry[] = [
     assignedZone: '10 Mangalwari',
     displayName: 'Zone 10: Mangalwari Officer',
   },
+  // Patient Tracking Users (Field Officers)
+  { username: 'tracker zone 1', password: 'track123', role: 'FIELD_OFFICER', assignedZone: '1 Laxmi Nagar', displayName: 'Tracker: Zone 1' },
+  { username: 'tracker zone 2', password: 'track123', role: 'FIELD_OFFICER', assignedZone: '2 Dharampeth', displayName: 'Tracker: Zone 2' },
+  { username: 'tracker zone 3', password: 'track123', role: 'FIELD_OFFICER', assignedZone: '3 Hanuman Nagar', displayName: 'Tracker: Zone 3' },
+  { username: 'tracker zone 4', password: 'track123', role: 'FIELD_OFFICER', assignedZone: '4 Dhantoli', displayName: 'Tracker: Zone 4' },
+  { username: 'tracker zone 5', password: 'track123', role: 'FIELD_OFFICER', assignedZone: '5 Nehru Nagar', displayName: 'Tracker: Zone 5' },
+  { username: 'tracker zone 6', password: 'track123', role: 'FIELD_OFFICER', assignedZone: '6 Gandhibag', displayName: 'Tracker: Zone 6' },
+  { username: 'tracker zone 7', password: 'track123', role: 'FIELD_OFFICER', assignedZone: '7 Satranjipura', displayName: 'Tracker: Zone 7' },
+  { username: 'tracker zone 8', password: 'track123', role: 'FIELD_OFFICER', assignedZone: '8 Lakadganj', displayName: 'Tracker: Zone 8' },
+  { username: 'tracker zone 9', password: 'track123', role: 'FIELD_OFFICER', assignedZone: '9 AashiNagar', displayName: 'Tracker: Zone 9' },
+  { username: 'tracker zone 10', password: 'track123', role: 'FIELD_OFFICER', assignedZone: '10 Mangalwari', displayName: 'Tracker: Zone 10' },
 ];
 
 const AUTH_STORAGE_KEY = 'nmc_user_session';

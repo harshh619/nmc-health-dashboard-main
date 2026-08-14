@@ -63,7 +63,7 @@ export interface GeoJsonData {
 
 export interface UserSession {
   username: string;
-  role: 'SUPER_ADMIN' | 'ZONE_OFFICER';
+  role: 'SUPER_ADMIN' | 'ZONE_OFFICER' | 'FIELD_OFFICER';
   assignedZone: string | null;
   displayName: string;
 }

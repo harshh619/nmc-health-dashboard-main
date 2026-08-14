@@ -46,6 +46,9 @@ export default function FieldVerificationModal({
   const [geoData, setGeoData] = useState<any>(null);
   const [remarks, setRemarks] = useState<string>('');
   const [isReportingIssue, setIsReportingIssue] = useState(false);
+  const [mobileNumber, setMobileNumber] = useState<string>(patient.Mobile_Number || '');
+
+  const isSuperAdmin = userSession?.role === 'SUPER_ADMIN';
 
   // Fetch GeoJSON boundary data for map point-in-polygon verification
   useEffect(() => {
@@ -245,6 +248,17 @@ export default function FieldVerificationModal({
       return;
     }
 
+    if (!isReportingIssue && !isSuperAdmin) {
+      if (!mobileNumber || mobileNumber.trim().length !== 10) {
+        setSubmitError('Mobile number is compulsory. Please enter a valid 10-digit mobile number.');
+        return;
+      }
+      if (!photoDataUrl) {
+        setSubmitError('Location Photo is compulsory. Please capture or upload a photo.');
+        return;
+      }
+    }
+
     // Strict Spatial Boundary Guard: Prevent submission of mismatched/fake location or ward selection
     if (!isReportingIssue && geoData) {
       if (!detectedWardFromGps) {
@@ -290,6 +304,7 @@ export default function FieldVerificationModal({
         locationPhotoUrl: photoDataUrl,
         verifiedBy: userSession?.displayName || 'Field Officer',
         remarks: remarks,
+        mobileNumber: mobileNumber,
       });
 
       if (res.success) {
@@ -478,11 +493,31 @@ export default function FieldVerificationModal({
             )}
           </div>
 
+          {/* Mobile Number Capture */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
+              <span>3. Patient Mobile Number</span>
+              <span className={`text-[10px] ${isSuperAdmin ? 'text-slate-400' : 'text-rose-500 font-bold'}`}>
+                {isSuperAdmin ? 'Optional' : 'Compulsory'}
+              </span>
+            </label>
+            <input
+              type="tel"
+              value={mobileNumber}
+              onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+              placeholder="e.g. 9876543210"
+              className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-600"
+              maxLength={10}
+            />
+          </div>
+
           {/* Location Photo Capture & Preview */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
-              <span>3. Location Photo Capture</span>
-              <span className="text-[10px] text-slate-400">Optional</span>
+              <span>4. Location Photo Capture</span>
+              <span className={`text-[10px] ${isSuperAdmin ? 'text-slate-400' : 'text-rose-500 font-bold'}`}>
+                {isSuperAdmin ? 'Optional' : 'Compulsory'}
+              </span>
             </label>
 
             <div className="relative">

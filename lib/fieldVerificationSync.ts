@@ -20,6 +20,7 @@ export interface FieldVerificationPayload {
   verifiedBy: string;
   verifiedAt?: string;
   remarks?: string;
+  mobileNumber?: string;
 }
 
 /**
@@ -82,6 +83,7 @@ export async function submitFieldVerification(
     Zone: autoZone || payload.zone || 'Unassigned',
     Location_Photo_Url: payload.locationPhotoUrl || null,
     Remarks: payload.remarks || null,
+    Mobile_Number: payload.mobileNumber || null,
   };
 
   let supabaseSuccess = false;
@@ -213,6 +215,7 @@ export async function submitFieldVerification(
               Long: payload.long,
               Zone: payload.zone || 'Unassigned',
               Remarks: payload.remarks || null,
+              Mobile_Number: payload.mobileNumber || null,
             },
           ]),
         }
@@ -241,6 +244,7 @@ export async function submitFieldVerification(
           verifiedBy: payload.verifiedBy,
           verifiedAt: verifiedTimestamp,
           remarks: payload.remarks || '',
+          mobileNumber: payload.mobileNumber || '',
         }),
       });
     } catch (err) {

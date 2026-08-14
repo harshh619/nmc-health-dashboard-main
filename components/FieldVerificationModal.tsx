@@ -74,7 +74,9 @@ export default function FieldVerificationModal({
 
   // Get Prabhag / Ward options for this patient's zone (with zone number prefix matching & 100% fail-safe fallback)
   const availableWards = React.useMemo(() => {
-    const patientZone = patient.Zone || userSession?.assignedZone || '';
+    const patientZone = userSession?.role !== 'SUPER_ADMIN' && userSession?.assignedZone
+      ? userSession.assignedZone
+      : patient.Zone || '';
 
     // Extract Zone number if present (e.g. '2 Dharampeth' -> '2')
     const numMatch = String(patientZone).match(/\d+/);

@@ -68,7 +68,7 @@ export default function Home() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showFieldTracker, setShowFieldTracker] = useState(false);
 
-  const isFieldOfficer = userSessionState?.role === 'FIELD_OFFICER';
+  const isFieldOfficer = userSession?.role === 'FIELD_OFFICER';
 
   // Weather state & live update timestamp
   const [weather, setWeather] = useState<WeatherData>({
@@ -397,7 +397,7 @@ export default function Home() {
             <CommandToolbar
               dataSource={dataSource}
               onRefresh={loadData}
-              userSession={userSessionState}
+              userSession={userSession}
               onLogout={handleLogout}
               pendingVerificationsCount={pendingVerificationCount}
               onToggleFieldTracker={() => setShowFieldTracker(!showFieldTracker)}
@@ -408,7 +408,7 @@ export default function Home() {
             {showFieldTracker && (
               <FieldTrackerWidget
                 patientData={filteredData}
-                userSession={userSessionState}
+                userSession={userSession}
                 onRefreshData={loadData}
               />
             )}

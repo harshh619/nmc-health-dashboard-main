@@ -248,11 +248,14 @@ export default function FieldVerificationModal({
       return;
     }
 
-    if (!isReportingIssue && !isSuperAdmin) {
+    if (!isSuperAdmin) {
       if (!mobileNumber || mobileNumber.trim().length !== 10) {
-        setSubmitError('Mobile number is compulsory. Please enter a valid 10-digit mobile number.');
+        setSubmitError('Tracker Mobile Number is compulsory. Please enter a valid 10-digit mobile number.');
         return;
       }
+    }
+
+    if (!isReportingIssue && !isSuperAdmin) {
       if (!photoDataUrl) {
         setSubmitError('Location Photo is compulsory. Please capture or upload a photo.');
         return;
@@ -496,7 +499,7 @@ export default function FieldVerificationModal({
           {/* Mobile Number Capture */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
-              <span>3. Patient Mobile Number</span>
+              <span>3. Tracker Mobile Number</span>
               <span className={`text-[10px] ${isSuperAdmin ? 'text-slate-400' : 'text-rose-500 font-bold'}`}>
                 {isSuperAdmin ? 'Optional' : 'Compulsory'}
               </span>

@@ -405,12 +405,7 @@ export default function Home() {
   };
 
   return (
-    <div 
-      className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 font-sans relative"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 font-sans relative">
       {/* Pull to refresh visual indicator */}
       {isPulling && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[999999] bg-white dark:bg-slate-800 rounded-full shadow-lg p-2 animate-bounce border border-slate-200 dark:border-slate-700">

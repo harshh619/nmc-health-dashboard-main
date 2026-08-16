@@ -8,6 +8,13 @@ export const metadata: Metadata = {
     'Nagpur Municipal Corporation Disease Surveillance Portal powered by Metropolitan Surveillance Unit (MSU Nagpur). Real-time disease monitoring, hot spot detection, and analytics.',
 };
 
+export const viewport: import('next').Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({
   children,
 }: {

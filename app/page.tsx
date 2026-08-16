@@ -65,7 +65,7 @@ export default function Home() {
   const [userSession, setUserSessionState] = useState<UserSession | null>(null);
   const [patientData, setPatientData] = useState<PatientRecord[]>([]);
   const [dataSource, setDataSource] = useState('Loading...');
-  const [lastWeatherUpdated, setLastWeatherUpdated] = useState<Date>(new Date());
+  const [lastWeatherUpdated, setLastWeatherUpdated] = useState<string>('');
 
   // Auto-reload PWA when a new version is available
   useEffect(() => {

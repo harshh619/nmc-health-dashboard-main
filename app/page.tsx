@@ -19,6 +19,7 @@ import PatientDataTable from '../components/PatientDataTable';
 import FieldTrackerWidget from '../components/FieldTrackerWidget';
 import Footer from '../components/Footer';
 import SkeletonLoader from '../components/SkeletonLoader';
+import ScrollToTopButton from '../components/ScrollToTopButton';
 
 // Dynamically import Leaflet map & Recharts charts with { ssr: false } to avoid SSR/hydration errors
 const SurveillanceMap = dynamic(
@@ -512,6 +513,9 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Floating Scroll to Top Button */}
+      {isAuthenticated && <ScrollToTopButton />}
     </div>
   );
 }

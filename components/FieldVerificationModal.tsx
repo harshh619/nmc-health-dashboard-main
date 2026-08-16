@@ -459,9 +459,7 @@ export default function FieldVerificationModal({
             >
               <option value="">-- Select Verified Prabhag --</option>
               {availableWards.map((w) => (
-                <option key={w} value={w}>
-                  📍 Prabhag / Ward No. {w}
-                </option>
+                <option key={w} value={w}>{`📍 Prabhag / Ward No. ${w}`}</option>
               ))}
             </select>
 

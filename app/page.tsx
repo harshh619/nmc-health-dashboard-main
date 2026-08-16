@@ -535,7 +535,7 @@ export default function Home() {
               onToggleFieldTracker={() => setShowFieldTracker(!showFieldTracker)}
               isFieldTrackerVisible={showFieldTracker}
               isPrivacyMode={isPrivacyMode}
-              onTogglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)}
+              onTogglePrivacyMode={() => setIsPrivacyMode((prev) => !prev)}
             />
 
             {/* Real-Time Field Verification & GPS/Photo Location Tracker Widget */}

@@ -195,6 +195,7 @@ export default function CommandToolbar({
         {/* Privacy Mode Toggle */}
         {onTogglePrivacyMode && (
           <button
+            type="button"
             onClick={onTogglePrivacyMode}
             className={`flex-1 sm:flex-none justify-center px-2 py-1.5 sm:px-2.5 sm:py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 border ${
               isPrivacyMode

@@ -74,9 +74,22 @@ export default function Home() {
         // A new service worker has taken control (skipWaiting was triggered)
         window.location.reload();
       };
+      
+      const checkUpdate = () => {
+        if (document.visibilityState === 'visible') {
+          navigator.serviceWorker.ready.then((reg) => reg.update());
+        }
+      };
+
       navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+      document.addEventListener('visibilitychange', checkUpdate);
+      
+      // Initial check on mount
+      navigator.serviceWorker.ready.then((reg) => reg.update());
+
       return () => {
         navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+        document.removeEventListener('visibilitychange', checkUpdate);
       };
     }
   }, []);

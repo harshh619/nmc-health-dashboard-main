@@ -350,7 +350,7 @@ export default function Home() {
       )}
 
       {/* Screen Edge Floating Restore Tab Button (when sidebar is collapsed) */}
-      {isSidebarCollapsed && !isFieldOfficer && (
+      {isAuthenticated && isSidebarCollapsed && !isFieldOfficer && (
         <button
           onClick={() => setIsSidebarCollapsed(false)}
           className="hidden lg:flex fixed left-0 top-1/2 -translate-y-1/2 z-[99999] bg-blue-900 hover:bg-blue-800 text-white rounded-r-xl py-3 px-2 shadow-2xl border-r border-t border-b border-blue-700 flex-col items-center gap-1.5 transition-all duration-300 active:scale-95 text-xs font-bold animate-pulse group cursor-pointer"
@@ -365,7 +365,7 @@ export default function Home() {
       )}
 
       {/* MOBILE Screen Edge Floating Filter Button */}
-      {!isFieldOfficer && !isMobileSidebarOpen && (
+      {isAuthenticated && !isFieldOfficer && !isMobileSidebarOpen && (
         <button
           onClick={() => setIsMobileSidebarOpen(true)}
           className="lg:hidden fixed left-0 top-1/2 -translate-y-1/2 z-[99999] bg-blue-900 hover:bg-blue-800 text-white rounded-r-xl py-3 px-2 shadow-2xl border-r border-t border-b border-blue-700 flex flex-col items-center gap-1.5 transition-all duration-300 active:scale-95 text-xs font-bold animate-pulse group cursor-pointer"

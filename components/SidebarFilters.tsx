@@ -353,10 +353,21 @@ export default function SidebarFilters({
 
         {/* Date Window Filter */}
         <div className="space-y-1">
-          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-            <span>Date Window Filter</span>
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+              <span>Date Window Filter</span>
+            </label>
+            <button
+              onClick={() => {
+                const todayStr = new Date().toISOString().split('T')[0];
+                setDateRange([todayStr, todayStr]);
+              }}
+              className="text-[10px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/50 dark:text-blue-300 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800 transition-colors active:scale-95"
+            >
+              Today
+            </button>
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 block mb-0.5">From</span>

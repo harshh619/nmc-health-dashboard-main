@@ -95,8 +95,6 @@ export default function Home() {
     humidity: 57.0,
     rainfall: 0.0,
   });
-  const [lastWeatherUpdated, setLastWeatherUpdated] = useState<string>('');
-
   // Filter States
   const [dateRange, setDateRange] = useState<[string, string]>(['', '']);
   const [selectedDiseases, setSelectedDiseases] = useState<string[]>([]);

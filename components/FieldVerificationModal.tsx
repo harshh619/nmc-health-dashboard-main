@@ -251,8 +251,19 @@ export default function FieldVerificationModal({
     }
 
     if (!isSuperAdmin) {
-      if (!mobileNumber || mobileNumber.trim().length !== 10) {
-        setSubmitError('Tracker Mobile Number is compulsory. Please enter a valid 10-digit mobile number.');
+      const numStr = mobileNumber ? mobileNumber.trim() : '';
+      if (!numStr || numStr.length !== 10) {
+        setSubmitError('Tracker Mobile Number is compulsory. Please enter exactly 10 digits.');
+        return;
+      }
+      
+      // Strict Validation Rules
+      const isFakeSequence = /^(1234567890|0987654321|9876543210)$/.test(numStr);
+      const isRepeated = /^(\d)\1{9}$/.test(numStr); // blocks 9999999999, 0000000000, etc.
+      const isValidPrefix = /^[6-9]/.test(numStr); // Must start with 6, 7, 8, or 9
+
+      if (isFakeSequence || isRepeated || !isValidPrefix) {
+        setSubmitError('🚨 Invalid Mobile Number: Please enter a real and working 10-digit mobile number. Fake/Test numbers are blocked.');
         return;
       }
     }

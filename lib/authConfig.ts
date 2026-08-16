@@ -135,12 +135,12 @@ export function authenticateUser(usernameInput: string, passwordInput: string): 
 export function getUserSession(): UserSession | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = sessionStorage.getItem(AUTH_STORAGE_KEY);
+    const raw = localStorage.getItem(AUTH_STORAGE_KEY);
     if (raw) {
       return JSON.parse(raw) as UserSession;
     }
     // Backward compatibility: check legacy nagpur_auth flag
-    if (sessionStorage.getItem('nagpur_auth') === 'true') {
+    if (localStorage.getItem('nagpur_auth') === 'true') {
       return {
         username: 'admin',
         role: 'SUPER_ADMIN',
@@ -157,8 +157,8 @@ export function getUserSession(): UserSession | null {
 export function setUserSession(session: UserSession): void {
   if (typeof window === 'undefined') return;
   try {
-    sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
-    sessionStorage.setItem('nagpur_auth', 'true');
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+    localStorage.setItem('nagpur_auth', 'true');
   } catch (err) {
     console.warn('Failed to save user session:', err);
   }
@@ -167,8 +167,8 @@ export function setUserSession(session: UserSession): void {
 export function clearUserSession(): void {
   if (typeof window === 'undefined') return;
   try {
-    sessionStorage.removeItem(AUTH_STORAGE_KEY);
-    sessionStorage.removeItem('nagpur_auth');
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem('nagpur_auth');
   } catch (err) {
     console.warn('Failed to clear user session:', err);
   }

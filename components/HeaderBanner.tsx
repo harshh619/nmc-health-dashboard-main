@@ -20,8 +20,10 @@ export default function HeaderBanner() {
         </div>
 
         <div>
-          <h1 className="text-base sm:text-lg font-extrabold tracking-tight flex items-center gap-2">
-            <span>Nagpur Municipal Corporation - Disease Surveillance Portal</span>
+          <h1 className="text-base sm:text-lg font-extrabold tracking-tight">
+            <span className="block sm:inline">Nagpur Municipal Corporation</span>
+            <span className="hidden sm:inline"> - </span>
+            <span className="block sm:inline text-[13px] sm:text-lg">Disease Surveillance Portal</span>
           </h1>
           <p className="text-[11px] text-blue-200 font-medium flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />

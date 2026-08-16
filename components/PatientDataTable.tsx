@@ -34,7 +34,14 @@ export default function PatientDataTable({
     const ward = cleanWardName(row.Ward_Name);
     const status = formatStatusDisplay(row.Status);
     
-    const text = `🚨 *NMC Surveillance Alert*\n\n*Patient:* ${masked}\n*Disease:* ${disease}\n*Ward:* ${ward}\n*Status:* ${status}\n\nPlease take necessary action.`;
+    let text = `🚨 *NMC Surveillance Alert*\n\n*Patient:* ${masked}\n*Disease:* ${disease}\n*Ward:* ${ward}\n*Status:* ${status}\n`;
+    
+    if (row.Lat && row.Long) {
+      const mapsUrl = `https://www.google.com/maps?q=${row.Lat},${row.Long}`;
+      text += `*Location:* ${mapsUrl}\n`;
+    }
+
+    text += `\nPlease take necessary action.`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };

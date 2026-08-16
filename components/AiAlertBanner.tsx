@@ -56,7 +56,7 @@ const AiAlertBanner = React.memo(function AiAlertBanner({
           recommended.
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 });
 

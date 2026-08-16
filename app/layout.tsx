@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: 'NMC Disease Surveillance Portal | MSU Nagpur',
   description:
     'Nagpur Municipal Corporation Disease Surveillance Portal powered by Metropolitan Surveillance Unit (MSU Nagpur). Real-time disease monitoring, hot spot detection, and analytics.',
+  manifest: '/manifest.json',
 };
 
 export const viewport: import('next').Viewport = {
@@ -13,6 +14,7 @@ export const viewport: import('next').Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: '#1e3a8a',
 };
 
 export default function RootLayout({

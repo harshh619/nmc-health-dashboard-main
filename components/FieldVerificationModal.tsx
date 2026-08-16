@@ -455,11 +455,11 @@ export default function FieldVerificationModal({
             <select
               value={selectedWard}
               onChange={(e) => setSelectedWard(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
+              className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-base md:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
             >
-              <option value="">-- Select Ward --</option>
+              <option value="">-- Select Prabhag --</option>
               {availableWards.map((w) => (
-                <option key={w} value={w}>{`Ward ${w}`}</option>
+                <option key={w} value={w}>{`Prabhag No. ${w}`}</option>
               ))}
             </select>
 

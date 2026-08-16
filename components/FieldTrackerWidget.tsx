@@ -21,15 +21,26 @@ interface FieldTrackerWidgetProps {
   patientData: PatientRecord[];
   userSession?: UserSession | null;
   onRefreshData?: () => void;
+  isPrivacyMode?: boolean;
 }
 
 export default function FieldTrackerWidget({
   patientData = [],
   userSession,
   onRefreshData,
+  isPrivacyMode = false,
 }: FieldTrackerWidgetProps) {
   const [activeTab, setActiveTab] = useState<'pending' | 'verified'>('pending');
   const [selectedPatientForVisit, setSelectedPatientForVisit] = useState<PatientRecord | null>(null);
+
+  const maskPatientName = (name: string) => {
+    if (!name || name === 'N/A') return 'N/A';
+    if (!isPrivacyMode) return name;
+    return name
+      .split(' ')
+      .map((word) => (word.length > 1 ? word[0] + '*'.repeat(word.length - 1) : word))
+      .join(' ');
+  };
 
   // Filter records requiring verification (Unassigned / Unknown Zone cases show to ALL zones)
   const pendingRecords = useMemo(() => {
@@ -145,7 +156,7 @@ export default function FieldTrackerWidget({
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-extrabold text-slate-900 dark:text-white truncate max-w-[150px]">
-                      {p.Patient_Name || 'Patient'}
+                      {maskPatientName(p.Patient_Name || 'Patient')}
                     </span>
                     <span className="text-[10px] font-bold bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 px-1.5 py-0.5 rounded">
                       ID: #{p.Patient_ID}

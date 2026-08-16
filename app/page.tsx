@@ -549,6 +549,7 @@ export default function Home() {
                 patientData={filteredData}
                 userSession={userSession}
                 onRefreshData={loadData}
+                isPrivacyMode={isPrivacyMode}
               />
             )}
 

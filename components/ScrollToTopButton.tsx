@@ -17,10 +17,10 @@ export default function ScrollToTopButton() {
         // Clear any existing timeout
         clearTimeout(scrollTimeout);
         
-        // Hide the button 0.8 seconds after scrolling STOPS
+        // Hide the button 0.4 seconds after scrolling STOPS
         scrollTimeout = setTimeout(() => {
           setIsVisible(false);
-        }, 800);
+        }, 400);
       } else {
         setIsVisible(false);
       }

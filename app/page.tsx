@@ -95,6 +95,8 @@ export default function Home() {
     ) {
       setSelectedZones([session.assignedZone]);
     }
+    // Force scroll to top on login so header is visible
+    setTimeout(() => window.scrollTo({ top: 0, left: 0, behavior: 'smooth' }), 50);
   };
 
   const handleLogout = () => {

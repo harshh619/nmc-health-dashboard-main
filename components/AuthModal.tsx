@@ -102,7 +102,6 @@ export default function AuthModal({ onAuthenticated }: AuthModalProps) {
               }}
               placeholder="Enter password..."
               className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
-              autoFocus
             />
           </div>
 

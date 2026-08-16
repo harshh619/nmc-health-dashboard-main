@@ -120,7 +120,7 @@ export default function CommandToolbar({
       </div>
 
       {/* Right: Quick Action Command Buttons */}
-      <div className="flex items-center justify-between w-full sm:w-auto gap-1 sm:gap-2 mt-1 sm:mt-0">
+      <div className="flex flex-wrap items-center justify-start w-full sm:w-auto gap-1 sm:gap-2 mt-1 sm:mt-0">
         {/* Field Tracker Queue Button */}
         {onToggleFieldTracker && (
           <button

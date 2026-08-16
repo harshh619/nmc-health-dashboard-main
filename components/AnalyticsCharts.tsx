@@ -358,7 +358,18 @@ export default function AnalyticsCharts({
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3} />
                 <XAxis
                   dataKey="ward"
-                  tick={{ fontSize: 10, fill: '#94a3b8' }}
+                  tick={(props: any) => {
+                    const { x, y, payload } = props;
+                    const shortName = payload.value.replace('Prabhag No. ', 'P');
+                    return (
+                      <g transform={`translate(${x},${y})`}>
+                        <text x={0} y={0} dy={12} textAnchor="middle" fill="#94a3b8" fontSize={10}>
+                          {shortName}
+                        </text>
+                      </g>
+                    );
+                  }}
+                  interval={0}
                   tickLine={false}
                   axisLine={{ stroke: '#475569' }}
                 />

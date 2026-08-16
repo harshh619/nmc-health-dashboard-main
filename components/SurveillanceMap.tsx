@@ -667,7 +667,7 @@ export default function SurveillanceMap({
       )}
 
       {/* Map Container */}
-      <div className="relative w-full h-[480px] sm:h-[580px] md:h-[640px] rounded-xl overflow-hidden border border-slate-200">
+      <div className="relative w-full aspect-square sm:aspect-auto sm:h-[580px] md:h-[640px] rounded-xl overflow-hidden border border-slate-200">
         <div ref={mapContainerRef} className="w-full h-full z-0" />
 
         {/* Mobile Legend Toggle Pill Button */}

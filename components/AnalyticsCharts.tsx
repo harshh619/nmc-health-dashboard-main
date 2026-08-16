@@ -526,7 +526,21 @@ export default function AnalyticsCharts({
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3} />
                 <XAxis
                   dataKey="group"
-                  tick={{ fontSize: 10, fill: '#94a3b8' }}
+                  tick={(props: any) => {
+                    const { x, y, payload } = props;
+                    const parts = payload.value.split(' (');
+                    const line1 = parts[0];
+                    const line2 = parts[1] ? `(${parts[1]}` : '';
+                    return (
+                      <g transform={`translate(${x},${y})`}>
+                        <text x={0} y={0} dy={12} textAnchor="middle" fill="#94a3b8" fontSize={9} className="sm:text-[10px]">
+                          <tspan x={0} dy="0">{line1}</tspan>
+                          {line2 && <tspan x={0} dy="12">{line2}</tspan>}
+                        </text>
+                      </g>
+                    );
+                  }}
+                  interval={0}
                   tickLine={false}
                   axisLine={{ stroke: '#475569' }}
                 />

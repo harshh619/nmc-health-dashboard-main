@@ -33,17 +33,17 @@ export default function AuthModal({ onAuthenticated }: AuthModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 overflow-y-auto">
-      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-5 animate-fadeIn my-auto transition-colors duration-300">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 overflow-y-auto min-h-[100dvh]">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-8 space-y-5 animate-fadeIn transition-colors duration-300 m-auto">
         {/* Header Branding */}
         <div className="text-center space-y-2">
           <div className="inline-flex p-3 rounded-full bg-blue-100 dark:bg-blue-950/80 text-blue-900 dark:text-blue-300 mb-1 border border-blue-200 dark:border-blue-800">
             <Lock className="w-7 h-7" />
           </div>
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-tight">
             Nagpur Municipal Corporation
           </h2>
-          <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+          <p className="text-[10px] sm:text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider px-2">
             Disease Surveillance & Zone Command Portal
           </p>
         </div>
@@ -51,9 +51,9 @@ export default function AuthModal({ onAuthenticated }: AuthModalProps) {
         <form onSubmit={handleLogin} className="space-y-4 pt-1">
           {/* Account Scope Dropdown / Username Input */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+            <label className="block text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              <span>Select Account Scope / Username</span>
+              <span>Select Account / Username</span>
             </label>
             <select
               value={username}

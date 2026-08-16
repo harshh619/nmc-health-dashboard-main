@@ -390,14 +390,14 @@ export default function FieldVerificationModal({
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-1.5">
           {/* GPS Location Auto-Capture Section */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
-              <span>1. GPS Lat & Long Coordinates</span>
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between mb-0">
+              <span>1. GPS Coordinates</span>
               {gpsAccuracy !== null && (
-                <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.2 rounded font-bold">
-                  Accuracy: ±{gpsAccuracy}m
+                <span className="text-[9px] bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 px-1 rounded font-bold">
+                  ±{gpsAccuracy}m
                 </span>
               )}
             </label>
@@ -407,10 +407,10 @@ export default function FieldVerificationModal({
                 type="button"
                 onClick={handleCaptureGps}
                 disabled={isGettingGps}
-                className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                className="flex-1 py-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
               >
-                <MapPin className="w-4 h-4" />
-                <span>{isGettingGps ? 'Fetching GPS...' : '📍 Auto-Capture GPS Location'}</span>
+                <MapPin className="w-3.5 h-3.5" />
+                <span>{isGettingGps ? 'Fetching...' : '📍 Auto-Capture GPS'}</span>
               </button>
             </div>
 
@@ -449,13 +449,13 @@ export default function FieldVerificationModal({
 
           {/* Ward / Prabhag Selection */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+            <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-0.5">
               2. Select Prabhag No.
             </label>
             <select
               value={selectedWard}
               onChange={(e) => setSelectedWard(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-base md:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
+              className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-base md:text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
             >
               <option value="">Select Prabhag...</option>
               {availableWards.map((w) => (
@@ -508,10 +508,10 @@ export default function FieldVerificationModal({
           </div>
 
           {/* Mobile Number Capture */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
-              <span>3. Tracker Mobile Number</span>
-              <span className={`text-[10px] ${isSuperAdmin ? 'text-slate-400' : 'text-rose-500 font-bold'}`}>
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
+              <span>3. Mobile Number</span>
+              <span className={`text-[9px] ${isSuperAdmin ? 'text-slate-400' : 'text-rose-500 font-bold'}`}>
                 {isSuperAdmin ? 'Optional' : 'Compulsory'}
               </span>
             </label>
@@ -520,16 +520,16 @@ export default function FieldVerificationModal({
               value={mobileNumber}
               onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
               placeholder="e.g. 9876543210"
-              className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-600"
               maxLength={10}
             />
           </div>
 
           {/* Location Photo Capture & Preview */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
-              <span>4. Location Photo Capture</span>
-              <span className={`text-[10px] ${isSuperAdmin ? 'text-slate-400' : 'text-rose-500 font-bold'}`}>
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
+              <span>4. Photo Capture</span>
+              <span className={`text-[9px] ${isSuperAdmin ? 'text-slate-400' : 'text-rose-500 font-bold'}`}>
                 {isSuperAdmin ? 'Optional' : 'Compulsory'}
               </span>
             </label>
@@ -545,23 +545,23 @@ export default function FieldVerificationModal({
               />
               <label
                 htmlFor="photo-upload-input"
-                className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 rounded-xl p-3 cursor-pointer bg-slate-50 dark:bg-slate-800/50 transition-colors"
+                className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 rounded-lg p-2 cursor-pointer bg-slate-50 dark:bg-slate-800/50 transition-colors"
               >
                 {photoDataUrl ? (
-                  <div className="relative w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-900 flex items-center justify-center">
+                  <div className="relative w-full rounded-md overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-900 flex items-center justify-center">
                     <img
                       src={photoDataUrl}
                       alt="Location preview"
-                      className="w-full max-h-64 object-contain"
+                      className="w-full max-h-32 object-contain"
                     />
-                    <div className="absolute top-2 right-2 bg-slate-900/80 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm">
-                      ✓ Photo Attached
+                    <div className="absolute top-1 right-1 bg-slate-900/80 text-white text-[9px] px-1.5 py-0.5 rounded font-bold shadow-sm">
+                      ✓ Attached
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 text-xs font-bold py-2">
-                    <Camera className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    <span>📸 Take Photo or Upload Image</span>
+                  <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 text-xs font-bold py-1">
+                    <Camera className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span>📸 Take Photo</span>
                   </div>
                 )}
               </label>
@@ -569,8 +569,8 @@ export default function FieldVerificationModal({
           </div>
 
           {/* Issue Reporting / Remarks Section */}
-          <div className="space-y-2 p-3 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800">
-            <label className="flex items-start gap-2 cursor-pointer">
+          <div className="space-y-1 p-2 rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800">
+            <label className="flex items-start gap-1.5 cursor-pointer">
               <input
                 type="checkbox"
                 checked={isReportingIssue}
@@ -578,21 +578,20 @@ export default function FieldVerificationModal({
                   setIsReportingIssue(e.target.checked);
                   if (e.target.checked) setSubmitError('');
                 }}
-                className="mt-0.5 w-4 h-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+                className="mt-0.5 w-3.5 h-3.5 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
               />
-              <div className="text-xs">
+              <div className="text-[10px]">
                 <span className="font-bold text-slate-800 dark:text-slate-200 block">Flag as Issue / Not My Zone</span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400">Check this if the patient belongs to another zone and you cannot verify them. GPS and Photo will be optional.</span>
               </div>
             </label>
             
             {isReportingIssue && (
-              <div className="mt-2">
+              <div className="mt-1">
                 <textarea
                   value={remarks}
                   onChange={(e) => setRemarks(e.target.value)}
-                  placeholder="Enter remarks (e.g. 'This address belongs to Zone 2, please reassign...')"
-                  className="w-full px-3 py-2 rounded-xl border border-orange-300 dark:border-orange-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 min-h-[60px]"
+                  placeholder="Enter remarks..."
+                  className="w-full px-2 py-1.5 rounded-lg border border-orange-300 dark:border-orange-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 min-h-[40px]"
                   required
                 />
               </div>
@@ -600,24 +599,24 @@ export default function FieldVerificationModal({
           </div>
 
           {submitError && (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-bold">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <div className="flex items-center gap-1.5 p-2 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-[10px] font-bold">
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
               <span>{submitError}</span>
             </div>
           )}
 
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-2 pt-1">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs transition-colors"
+              className="flex-1 py-1.5 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-lg text-xs transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 py-2.5 px-4 bg-blue-900 hover:bg-blue-800 text-white font-bold rounded-xl text-xs shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="flex-1 py-1.5 px-3 bg-blue-900 hover:bg-blue-800 text-white font-bold rounded-lg text-xs shadow-md shadow-blue-900/20 flex items-center justify-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               <CheckCircle className="w-4 h-4" />
               <span>{isSubmitting ? 'Submitting...' : 'Verify & Submit'}</span>

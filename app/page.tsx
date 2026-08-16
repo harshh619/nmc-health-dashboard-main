@@ -65,6 +65,22 @@ export default function Home() {
   const [userSession, setUserSessionState] = useState<UserSession | null>(null);
   const [patientData, setPatientData] = useState<PatientRecord[]>([]);
   const [dataSource, setDataSource] = useState('Loading...');
+  const [lastWeatherUpdated, setLastWeatherUpdated] = useState<Date>(new Date());
+
+  // Auto-reload PWA when a new version is available
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      const handleControllerChange = () => {
+        // A new service worker has taken control (skipWaiting was triggered)
+        window.location.reload();
+      };
+      navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+      return () => {
+        navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+      };
+    }
+  }, []);
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);

@@ -75,43 +75,97 @@ export default function SidebarFilters({
     return getZoneForWard(row.Ward_Name, row.Zone);
   };
 
-  // Unique options derived from allPatientData
+  // Step 1: Filter by Date Window
+  const dataAfterDate = useMemo(() => {
+    return allPatientData.filter((row) => {
+      if (dateRange[0] && dateRange[1] && row.Date) {
+        if (row.Date < dateRange[0] || row.Date > dateRange[1]) return false;
+      }
+      return true;
+    });
+  }, [allPatientData, dateRange]);
+
+  // Unique options for Disease (Based on Date)
   const allDiseases = useMemo(() => {
     return Array.from(
-      new Set(allPatientData.map((d) => d.Disease).filter((d): d is string => Boolean(d)))
+      new Set(dataAfterDate.map((d) => d.Disease).filter((d): d is string => Boolean(d)))
     ).sort();
-  }, [allPatientData]);
+  }, [dataAfterDate]);
 
+  // Step 2: Filter by Disease
+  const dataAfterDisease = useMemo(() => {
+    if (selectedDiseases.length === 0) return dataAfterDate;
+    return dataAfterDate.filter((row) => row.Disease && selectedDiseases.includes(row.Disease));
+  }, [dataAfterDate, selectedDiseases]);
+
+  // Unique options for Zones (Based on Date -> Disease)
   const allZones = useMemo(() => {
     return Array.from(
-      new Set(allPatientData.map((d) => getRowZone(d)).filter((z): z is string => Boolean(z)))
+      new Set(dataAfterDisease.map((d) => getRowZone(d)).filter((z): z is string => Boolean(z)))
     ).sort((a, b) => {
       const numA = parseInt(a, 10) || 0;
       const numB = parseInt(b, 10) || 0;
       if (numA !== numB) return numA - numB;
       return a.localeCompare(b);
     });
-  }, [allPatientData]);
+  }, [dataAfterDisease]);
 
+  // Step 3: Filter by Zone
+  const dataAfterZone = useMemo(() => {
+    if (selectedZones.length === 0) return dataAfterDisease;
+    return dataAfterDisease.filter((row) => {
+      const zoneVal = getRowZone(row);
+      const isUnassigned =
+        !zoneVal ||
+        zoneVal === 'Unknown Zone' ||
+        zoneVal.toLowerCase() === 'unassigned' ||
+        zoneVal.toLowerCase() === 'unknown';
+      if (!isUnassigned && !selectedZones.includes(zoneVal)) return false;
+      return true;
+    });
+  }, [dataAfterDisease, selectedZones]);
+
+  // Unique options for Wards (Based on Date -> Disease -> Zone)
   const allWards = useMemo(() => {
     return Array.from(
-      new Set(allPatientData.map((d) => d.Ward_Name).filter((w): w is string => Boolean(w)))
+      new Set(dataAfterZone.map((d) => d.Ward_Name).filter((w): w is string => Boolean(w)))
     ).sort((a, b) => {
       const numA = parseInt(cleanWardName(a), 10) || 0;
       const numB = parseInt(cleanWardName(b), 10) || 0;
       return numA - numB;
     });
-  }, [allPatientData]);
+  }, [dataAfterZone]);
 
+  // Step 4: Filter by Ward
+  const dataAfterWard = useMemo(() => {
+    if (selectedWards.length === 0) return dataAfterZone;
+    return dataAfterZone.filter((row) => row.Ward_Name && selectedWards.includes(row.Ward_Name));
+  }, [dataAfterZone, selectedWards]);
+
+  // Unique options for Status (Based on Date -> Disease -> Zone -> Ward)
   const allStatuses = useMemo(() => {
     const set = new Set<string>();
-    allPatientData.forEach((d) => {
+    dataAfterWard.forEach((d) => {
       set.add(normalizeStatus(d.Status));
     });
     return Array.from(set).sort();
-  }, [allPatientData]);
+  }, [dataAfterWard]);
 
-  const allGenders = ['Male', 'Female'];
+  // Step 5: Filter by Status
+  const dataAfterStatus = useMemo(() => {
+    if (selectedStatuses.length === 0) return dataAfterWard;
+    return dataAfterWard.filter((row) => {
+      const rowStatus = normalizeStatus(row.Status);
+      return selectedStatuses.some((sel) => normalizeStatus(sel) === rowStatus);
+    });
+  }, [dataAfterWard, selectedStatuses]);
+
+  // Unique options for Gender (Based on all above)
+  const allGenders = useMemo(() => {
+    return Array.from(
+      new Set(dataAfterStatus.map((d) => d.Gender).filter((g): g is string => Boolean(g)))
+    ).sort();
+  }, [dataAfterStatus]);
 
   // Zone Summary based on current filteredData (using getRowZone helper)
   const zoneSummary = useMemo(() => {

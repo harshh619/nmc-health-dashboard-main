@@ -7,7 +7,7 @@ import { fetchPatientData, supabase, normalizeStatus } from '../lib/supabase';
 import { cleanWardName, WARD_TO_ZONE_MAP, getZoneForWard } from '../lib/wardMapping';
 import { getUserSession, clearUserSession } from '../lib/authConfig';
 import { isVerificationPending } from '../lib/fieldVerificationSync';
-import { Filter, ChevronRight } from 'lucide-react';
+import { Filter, ChevronRight, RefreshCw } from 'lucide-react';
 
 import AuthModal from '../components/AuthModal';
 import HeaderBanner from '../components/HeaderBanner';
@@ -69,6 +69,7 @@ export default function Home() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showFieldTracker, setShowFieldTracker] = useState(false);
+  const [isPrivacyMode, setIsPrivacyMode] = useState(false);
 
   const isFieldOfficer = userSession?.role === 'FIELD_OFFICER';
 
@@ -343,8 +344,80 @@ export default function Home() {
     setSelectedGenders([]);
   };
 
+  const handleExportCsv = () => {
+    if (!filteredData || filteredData.length === 0) {
+      alert("No data available to export.");
+      return;
+    }
+
+    const headers = [
+      "Patient_ID", "Name", "Age", "Gender", "Address", "Ward_Name", "Zone", 
+      "Disease", "Status", "Date", "Phone_Number", "Hospital_Name"
+    ];
+
+    const csvRows = [];
+    csvRows.push(headers.join(","));
+
+    for (const row of filteredData) {
+      const values = headers.map(header => {
+        const val = row[header as keyof PatientRecord] || "";
+        const strVal = String(val).replace(/"/g, '""');
+        return `"${strVal}"`;
+      });
+      csvRows.push(values.join(","));
+    }
+
+    const blob = new Blob([csvRows.join("\n")], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `NMC_Surveillance_Data_${getTodayDateString()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // --- PULL TO REFRESH LOGIC ---
+  const [startY, setStartY] = useState(0);
+  const [isPulling, setIsPulling] = useState(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (window.scrollY === 0) {
+      setStartY(e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (window.scrollY === 0 && startY > 0) {
+      const currentY = e.touches[0].clientY;
+      if (currentY - startY > 100) {
+        setIsPulling(true);
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (isPulling) {
+      loadData();
+      setIsPulling(false);
+    }
+    setStartY(0);
+  };
+
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 font-sans relative">
+    <div 
+      className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 font-sans relative"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull to refresh visual indicator */}
+      {isPulling && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[999999] bg-white dark:bg-slate-800 rounded-full shadow-lg p-2 animate-bounce border border-slate-200 dark:border-slate-700">
+          <RefreshCw className="w-5 h-5 text-blue-600 animate-spin" />
+        </div>
+      )}
+
       {/* Authentication Modal */}
       {!isAuthenticated && (
         <AuthModal onAuthenticated={handleAuthenticated} />
@@ -461,10 +534,13 @@ export default function Home() {
               dataSource={dataSource}
               onRefresh={loadData}
               userSession={userSession}
+              onExportCsv={handleExportCsv}
               onLogout={handleLogout}
               pendingVerificationsCount={pendingVerificationCount}
               onToggleFieldTracker={() => setShowFieldTracker(!showFieldTracker)}
               isFieldTrackerVisible={showFieldTracker}
+              isPrivacyMode={isPrivacyMode}
+              onTogglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)}
             />
 
             {/* Real-Time Field Verification & GPS/Photo Location Tracker Widget */}
@@ -506,7 +582,10 @@ export default function Home() {
             />
 
             {/* Linelist / Patient Data Table */}
-            <PatientDataTable patientData={filteredData} />
+            <PatientDataTable 
+              patientData={filteredData} 
+              isPrivacyMode={isPrivacyMode}
+            />
 
             {/* Custom Author & Designation Footer */}
             <Footer />

@@ -1,29 +1,52 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Download, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, Search, ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react';
 import { PatientRecord } from '../lib/types';
 import { cleanWardName, getZoneForWard } from '../lib/wardMapping';
 import { formatDateDisplay, sortPatientRecordsById, formatStatusDisplay, normalizeStatus } from '../lib/supabase';
 
 interface PatientDataTableProps {
   patientData: PatientRecord[];
+  isPrivacyMode?: boolean;
 }
 
 export default function PatientDataTable({
   patientData,
+  isPrivacyMode = false,
 }: PatientDataTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
+  const maskPatientName = (name: string) => {
+    if (!name || name === 'N/A') return 'N/A';
+    if (!isPrivacyMode) return name;
+    return name
+      .split(' ')
+      .map((word) => (word.length > 1 ? word[0] + '*'.repeat(word.length - 1) : word))
+      .join(' ');
+  };
+
+  const handleWhatsAppShare = (row: PatientRecord) => {
+    const masked = maskPatientName(row.Patient_Name || '');
+    const disease = row.Disease || 'Unknown';
+    const ward = cleanWardName(row.Ward_Name);
+    const status = formatStatusDisplay(row.Status);
+    
+    const text = `🚨 *NMC Surveillance Alert*\n\n*Patient:* ${masked}\n*Disease:* ${disease}\n*Ward:* ${ward}\n*Status:* ${status}\n\nPlease take necessary action.`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
+
   // Filter by search term
   const filteredData = patientData.filter((row) => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
+    const displayName = maskPatientName(row.Patient_Name || '');
     return (
       String(row.Patient_ID || '').toLowerCase().includes(term) ||
-      String(row.Patient_Name || '').toLowerCase().includes(term) ||
+      displayName.toLowerCase().includes(term) ||
       String(row.Disease || '').toLowerCase().includes(term) ||
       String(row.Ward_Name || '').toLowerCase().includes(term) ||
       String(row.Zone || '').toLowerCase().includes(term) ||
@@ -69,7 +92,7 @@ export default function PatientDataTable({
 
     const rows = filteredData.map((r) => [
       `"${r.Patient_ID || ''}"`,
-      `"${r.Patient_Name || ''}"`,
+      `"${maskPatientName(r.Patient_Name || '')}"`,
       `"${r.Disease || ''}"`,
       `"${cleanWardName(r.Ward_Name)}"`,
       `"${r.Zone || ''}"`,
@@ -149,6 +172,7 @@ export default function PatientDataTable({
               <th className="p-3 border-b border-slate-200 dark:border-slate-700 min-w-[110px]">Age / Gender</th>
               <th className="p-3 border-b border-slate-200 dark:border-slate-700 min-w-[120px]">Status</th>
               <th className="p-3 border-b border-slate-200 dark:border-slate-700 min-w-[100px]">Date</th>
+              <th className="p-3 border-b border-slate-200 dark:border-slate-700 min-w-[60px]">Share</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
@@ -170,8 +194,8 @@ export default function PatientDataTable({
                   <td className="sticky left-0 z-10 bg-white dark:bg-slate-900 p-3 font-semibold text-slate-900 dark:text-slate-100 min-w-[50px] w-[50px] border-b border-slate-100 dark:border-slate-800">
                     {row.Patient_ID || `#${idx + 1}`}
                   </td>
-                  <td className="sticky left-[50px] z-10 bg-white dark:bg-slate-900 p-3 font-medium text-blue-900 dark:text-blue-300 min-w-[130px] w-[130px] border-b border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.1)]">
-                    {row.Patient_Name || 'N/A'}
+                <td className="sticky left-[50px] z-10 bg-white dark:bg-slate-900 p-3 font-medium text-blue-900 dark:text-blue-300 min-w-[130px] w-[130px] border-b border-r border-slate-100 dark:border-slate-800 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.1)]">
+                    {maskPatientName(row.Patient_Name || '')}
                   </td>
                   <td className="p-3 font-semibold text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800">
                     {row.Disease || 'N/A'}
@@ -202,6 +226,15 @@ export default function PatientDataTable({
                   </td>
                   <td className="p-3 text-slate-500 dark:text-slate-400 font-mono text-[11px] border-b border-slate-100 dark:border-slate-800">
                     {formatDateDisplay(row.Date)}
+                  </td>
+                  <td className="p-3 border-b border-slate-100 dark:border-slate-800">
+                    <button
+                      onClick={() => handleWhatsAppShare(row)}
+                      className="p-1.5 bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366] hover:text-white rounded-lg transition-colors border border-[#25D366]/30"
+                      title="Share to WhatsApp"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                    </button>
                   </td>
                 </tr>
               ))

@@ -33,12 +33,16 @@ export default function AuthModal({ onAuthenticated }: AuthModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 sm:p-6 overflow-y-auto min-h-[100dvh]">
-      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-8 space-y-5 animate-fadeIn transition-colors duration-300 m-auto">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 sm:p-6">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-8 space-y-5 animate-fadeIn transition-colors duration-300 max-h-full overflow-y-auto">
         {/* Header Branding */}
         <div className="text-center space-y-2">
-          <div className="inline-flex p-3 rounded-full bg-blue-100 dark:bg-blue-950/80 text-blue-900 dark:text-blue-300 mb-1 border border-blue-200 dark:border-blue-800">
-            <Lock className="w-7 h-7" />
+          <div className="inline-flex justify-center mb-1">
+            <img 
+              src="/logo.png" 
+              alt="NMC Logo" 
+              className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-md"
+            />
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-tight">
             Nagpur Municipal Corporation

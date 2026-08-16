@@ -14,7 +14,7 @@ interface MetricsOverviewProps {
   lastUpdated?: string;
 }
 
-export default function MetricsOverview({
+const MetricsOverview = React.memo(function MetricsOverview({
   patientData,
   selectedZones,
   selectedWards,
@@ -221,4 +221,6 @@ export default function MetricsOverview({
       </motion.div>
     </div>
   );
-}
+});
+
+export default MetricsOverview;

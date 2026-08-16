@@ -11,7 +11,7 @@ interface PatientDataTableProps {
   isPrivacyMode?: boolean;
 }
 
-export default function PatientDataTable({
+const PatientDataTable = React.memo(function PatientDataTable({
   patientData,
   isPrivacyMode = false,
 }: PatientDataTableProps) {
@@ -322,4 +322,6 @@ export default function PatientDataTable({
       </div>
     </div>
   );
-}
+});
+
+export default PatientDataTable;

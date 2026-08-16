@@ -236,10 +236,10 @@ export default function Home() {
       )
       .subscribe();
 
-    // 2. Silent Auto-Sync Polling Interval (every 10 seconds for instant sync without page refresh)
+    // 2. Silent Auto-Sync Polling Interval (every 10 minutes as a safe fallback for WebSocket drops)
     const autoSyncInterval = setInterval(() => {
       loadData(false);
-    }, 10000);
+    }, 600000);
 
     // 3. Auto-refresh weather every 5 minutes (300,000ms)
     const weatherInterval = setInterval(() => {

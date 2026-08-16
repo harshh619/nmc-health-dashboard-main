@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import Image from 'next/image';
 import {
   Navigation,
   CheckCircle2,
@@ -177,11 +178,13 @@ export default function FieldTrackerWidget({
 
                   {/* Location Photo Preview if available */}
                   {p.Location_Photo_Url && (
-                    <div className="w-full h-24 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 mt-1">
-                      <img
+                    <div className="w-full h-24 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 mt-1 relative">
+                      <Image
                         src={p.Location_Photo_Url}
                         alt="Location photo"
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, 33vw"
                       />
                     </div>
                   )}

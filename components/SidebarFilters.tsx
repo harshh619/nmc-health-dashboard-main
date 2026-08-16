@@ -38,7 +38,7 @@ interface SidebarFiltersProps {
   userSession?: UserSession | null;
 }
 
-export default function SidebarFilters({
+const SidebarFilters = React.memo(function SidebarFilters({
   allPatientData = [],
   filteredData = [],
   dateRange,
@@ -503,4 +503,6 @@ export default function SidebarFilters({
       </div>
     </div>
   );
-}
+});
+
+export default SidebarFilters;

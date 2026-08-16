@@ -7,7 +7,9 @@ interface AiAlertBannerProps {
   patientData: PatientRecord[];
 }
 
-export default function AiAlertBanner({ patientData }: AiAlertBannerProps) {
+const AiAlertBanner = React.memo(function AiAlertBanner({
+  patientData,
+}: AiAlertBannerProps) {
   if (patientData.length === 0) return null;
 
   // Determine top affected ward
@@ -54,6 +56,8 @@ export default function AiAlertBanner({ patientData }: AiAlertBannerProps) {
           recommended.
         </div>
       </div>
-    </div>
+    </motion.div>
   );
-}
+});
+
+export default AiAlertBanner;

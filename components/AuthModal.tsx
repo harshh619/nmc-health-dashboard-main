@@ -44,7 +44,7 @@ export default function AuthModal({ onAuthenticated }: AuthModalProps) {
               className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-md"
             />
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-tight">
+          <h2 className="text-xl sm:text-[22px] sm:whitespace-nowrap font-black text-slate-900 dark:text-white leading-tight">
             Nagpur Municipal Corporation
           </h2>
           <p className="text-[10px] sm:text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider px-2">
@@ -158,8 +158,11 @@ export default function AuthModal({ onAuthenticated }: AuthModalProps) {
           )}
         </div>
 
-        <div className="text-center text-[11px] text-slate-500 dark:text-slate-400 pt-1">
-          Metropolitan Surveillance Unit (MSU) Nagpur • Public Health Command
+        <div className="text-center text-[11px] text-slate-500 dark:text-slate-400 pt-1 leading-relaxed">
+          Metropolitan Surveillance Unit (MSU) Nagpur
+          <span className="hidden sm:inline"> • </span>
+          <br className="sm:hidden" />
+          Public Health Command
         </div>
       </div>
     </div>

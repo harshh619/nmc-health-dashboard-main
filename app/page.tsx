@@ -267,6 +267,13 @@ export default function Home() {
     
     window.addEventListener('online', handleOnline);
 
+    // 5. Initial Offline Queue Check (in case app was closed while offline)
+    if (typeof window !== 'undefined' && navigator.onLine) {
+      processOfflineQueue().then(() => {
+        // Will silently sync any leftover offline queue items to Supabase/Sheets
+      });
+    }
+
     return () => {
       supabase.removeChannel(channel);
       clearInterval(autoSyncInterval);

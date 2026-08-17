@@ -271,13 +271,34 @@ export async function fetchPatientData(): Promise<{ data: PatientRecord[]; dataS
             Verified_At: row.Verified_At || row.verified_at || '',
           };
         });
-        const finalData = sortPatientRecordsById(cleaned);
+        let finalData = sortPatientRecordsById(cleaned);
         
         if (typeof window !== 'undefined') {
           try {
+            const queue: any[] = await localforage.getItem('offline_sync_queue') || [];
+            if (queue.length > 0) {
+              finalData = finalData.map(p => {
+                const pendingUpdate = queue.find((q: any) => String(q.patientId) === String(p.Patient_ID));
+                if (pendingUpdate) {
+                  return {
+                    ...p,
+                    Lat: pendingUpdate.lat,
+                    Long: pendingUpdate.long,
+                    Ward_Name: pendingUpdate.wardName,
+                    Zone: pendingUpdate.zone || p.Zone,
+                    Location_Photo_Url: pendingUpdate.locationPhotoUrl || p.Location_Photo_Url,
+                    Remarks: pendingUpdate.remarks || p.Remarks,
+                    Mobile_Number: pendingUpdate.mobileNumber || p.Mobile_Number,
+                    Verified_By: pendingUpdate.verifiedBy,
+                    Verification_Status: 'Verified'
+                  };
+                }
+                return p;
+              });
+            }
             await localforage.setItem('offline_patient_data', finalData);
           } catch (err) {
-            console.warn('Failed to cache offline_patient_data:', err);
+            console.warn('Failed to apply queue or cache data:', err);
           }
         }
         
@@ -357,13 +378,34 @@ export async function fetchPatientData(): Promise<{ data: PatientRecord[]; dataS
             Location_Photo_Url: record.Location_Photo_Url || record.location_photo_url || record.photo_url || '',
           });
         }
-        const finalData = sortPatientRecordsById(records);
+        let finalData = sortPatientRecordsById(records);
         
         if (typeof window !== 'undefined') {
           try {
+            const queue: any[] = await localforage.getItem('offline_sync_queue') || [];
+            if (queue.length > 0) {
+              finalData = finalData.map(p => {
+                const pendingUpdate = queue.find((q: any) => String(q.patientId) === String(p.Patient_ID));
+                if (pendingUpdate) {
+                  return {
+                    ...p,
+                    Lat: pendingUpdate.lat,
+                    Long: pendingUpdate.long,
+                    Ward_Name: pendingUpdate.wardName,
+                    Zone: pendingUpdate.zone || p.Zone,
+                    Location_Photo_Url: pendingUpdate.locationPhotoUrl || p.Location_Photo_Url,
+                    Remarks: pendingUpdate.remarks || p.Remarks,
+                    Mobile_Number: pendingUpdate.mobileNumber || p.Mobile_Number,
+                    Verified_By: pendingUpdate.verifiedBy,
+                    Verification_Status: 'Verified'
+                  };
+                }
+                return p;
+              });
+            }
             await localforage.setItem('offline_patient_data', finalData);
           } catch (err) {
-            console.warn('Failed to cache offline_patient_data:', err);
+            console.warn('Failed to apply queue or cache data:', err);
           }
         }
         

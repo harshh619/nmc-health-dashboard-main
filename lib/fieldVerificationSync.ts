@@ -238,7 +238,7 @@ export async function submitFieldVerification(
   // 3. Fallback REST POST upsert if row did not exist in Supabase DB
   if (!supabaseSuccess) {
     try {
-      await fetch(
+      const res = await fetch(
         'https://oysmagibpobxsipxjzpd.supabase.co/rest/v1/patients_data?on_conflict=Patient_ID',
         {
           method: 'POST',
@@ -265,6 +265,9 @@ export async function submitFieldVerification(
           ]),
         }
       );
+      if (res.ok) {
+        supabaseSuccess = true;
+      }
     } catch (err) {
       console.warn('Supabase REST POST fallback error:', err);
     }
@@ -295,6 +298,13 @@ export async function submitFieldVerification(
     } catch (err) {
       console.warn('Google Apps Script Webhook notification error:', err);
     }
+  }
+
+  if (!supabaseSuccess) {
+    return {
+      success: false,
+      message: `Failed to sync patient ${payload.patientId} with the server. Will retry later.`,
+    };
   }
 
   return {

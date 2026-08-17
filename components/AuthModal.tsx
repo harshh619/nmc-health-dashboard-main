@@ -70,21 +70,21 @@ export default function AuthModal({ onAuthenticated }: AuthModalProps) {
               <optgroup label="Headquarters">
                 {CREDENTIALS_LIST.filter((c) => c.role === 'SUPER_ADMIN').map((c) => (
                   <option key={c.username} value={c.username}>
-                    👑 {c.displayName}
+                    {`👑 ${c.displayName}`.replace(/ /g, '\u00A0')}
                   </option>
                 ))}
               </optgroup>
               <optgroup label="Zonal Medical Officers (Dashboard)">
                 {CREDENTIALS_LIST.filter((c) => c.role === 'ZONE_OFFICER').map((c) => (
                   <option key={c.username} value={c.username}>
-                    🏢 {c.displayName}
+                    {`🏢 ${c.displayName}`.replace(/ /g, '\u00A0')}
                   </option>
                 ))}
               </optgroup>
               <optgroup label="Patient Tracking Users (Field Tracking)">
                 {CREDENTIALS_LIST.filter((c) => c.role === 'FIELD_OFFICER').map((c) => (
                   <option key={c.username} value={c.username}>
-                    📍 {c.displayName}
+                    {`📍 ${c.displayName}`.replace(/ /g, '\u00A0')}
                   </option>
                 ))}
               </optgroup>

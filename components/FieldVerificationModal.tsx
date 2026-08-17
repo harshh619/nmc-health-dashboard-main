@@ -46,7 +46,7 @@ export default function FieldVerificationModal({
   const [geoData, setGeoData] = useState<any>(null);
   const [remarks, setRemarks] = useState<string>('');
   const [isReportingIssue, setIsReportingIssue] = useState(false);
-  const [mobileNumber, setMobileNumber] = useState<string>(patient.Mobile_Number || '');
+  const [mobileNumber, setMobileNumber] = useState<string>('');
 
   const isSuperAdmin = userSession?.role === 'SUPER_ADMIN';
 
@@ -517,6 +517,7 @@ export default function FieldVerificationModal({
             </label>
             <input
               type="tel"
+              autoComplete="new-password"
               value={mobileNumber}
               onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
               placeholder="e.g. 9876543210"

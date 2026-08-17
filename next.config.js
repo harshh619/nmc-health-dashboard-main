@@ -10,6 +10,9 @@ const withPWA = require('@ducanh2912/next-pwa').default({
     skipWaiting: true,
     clientsClaim: true,
   },
+  fallbacks: {
+    document: '/~offline',
+  },
 });
 
 /** @type {import('next').NextConfig} */

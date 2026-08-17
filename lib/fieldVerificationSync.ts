@@ -126,7 +126,6 @@ export async function submitFieldVerification(
     Lat: payload.lat,
     Long: payload.long,
     Zone: autoZone || payload.zone || 'Unassigned',
-    Location_Photo_Url: payload.locationPhotoUrl || null,
     Remarks: payload.remarks || null,
     Mobile_Number: payload.mobileNumber || null,
   };

@@ -7,6 +7,14 @@ export const metadata: Metadata = {
   description:
     'Nagpur Municipal Corporation Disease Surveillance Portal powered by Metropolitan Surveillance Unit (MSU Nagpur). Real-time disease monitoring, hot spot detection, and analytics.',
   manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'NMC Surveillance',
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export const viewport: import('next').Viewport = {
@@ -32,6 +40,24 @@ export default function RootLayout({
       </head>
       <body className="bg-slate-50 min-h-screen antialiased text-slate-900 selection:bg-blue-600 selection:text-white">
         {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(
+                    function(registration) {
+                      console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    },
+                    function(err) {
+                      console.log('ServiceWorker registration failed: ', err);
+                    }
+                  );
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );

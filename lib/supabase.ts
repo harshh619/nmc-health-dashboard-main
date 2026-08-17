@@ -72,9 +72,20 @@ export function normalizeDateString(dateStr?: any): string {
   const str = String(dateStr).trim();
   if (!str || str.toLowerCase() === 'invalid date' || str.toLowerCase() === 'n/a') return '';
 
-  // Case 1: ISO string or YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+  // Case 1: ISO String or YYYY-MM-DD
+  if (str.includes('T')) {
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
     return str.split('T')[0];
+  }
+  
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+    return str.substring(0, 10);
   }
 
   // Case 2: DD/MM/YYYY or DD-MM-YYYY or MM/DD/YYYY

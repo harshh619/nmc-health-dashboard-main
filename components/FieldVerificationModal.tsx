@@ -50,6 +50,15 @@ export default function FieldVerificationModal({
 
   const isSuperAdmin = userSession?.role === 'SUPER_ADMIN';
 
+  useEffect(() => {
+    try {
+      const savedMobile = localStorage.getItem('tracker_mobile_number');
+      if (savedMobile && savedMobile.length === 10) {
+        setMobileNumber(savedMobile);
+      }
+    } catch (err) {}
+  }, []);
+
   // Fetch GeoJSON boundary data for map point-in-polygon verification
   useEffect(() => {
     async function loadGeoJson() {
@@ -324,6 +333,12 @@ export default function FieldVerificationModal({
       });
 
       if (res.success) {
+        try {
+          if (mobileNumber && mobileNumber.length === 10) {
+            localStorage.setItem('tracker_mobile_number', mobileNumber);
+          }
+        } catch (e) {}
+        
         onSuccess();
         onClose();
       } else {

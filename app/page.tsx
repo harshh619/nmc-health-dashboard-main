@@ -6,7 +6,7 @@ import { PatientRecord, WeatherData, UserSession } from '../lib/types';
 import { fetchPatientData, supabase, normalizeStatus } from '../lib/supabase';
 import { cleanWardName, WARD_TO_ZONE_MAP, getZoneForWard } from '../lib/wardMapping';
 import { getUserSession, clearUserSession } from '../lib/authConfig';
-import { isVerificationPending } from '../lib/fieldVerificationSync';
+import { isVerificationPending, processOfflineQueue } from '../lib/fieldVerificationSync';
 import { Filter, ChevronRight, RefreshCw } from 'lucide-react';
 
 import AuthModal from '../components/AuthModal';
@@ -257,10 +257,21 @@ export default function Home() {
       fetchWeather();
     }, 300000);
 
+    // 4. Offline/Online sync listeners
+    const handleOnline = () => {
+      console.log('App is back online! Syncing offline queue...');
+      processOfflineQueue().then(() => {
+        loadData(false); // Refresh after sync
+      });
+    };
+    
+    window.addEventListener('online', handleOnline);
+
     return () => {
       supabase.removeChannel(channel);
       clearInterval(autoSyncInterval);
       clearInterval(weatherInterval);
+      window.removeEventListener('online', handleOnline);
     };
   }, []);
 

@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { PatientRecord } from './types';
 import { formatFullWardName, getZoneForWard } from './wardMapping';
+import localforage from 'localforage';
 
 const GOOGLE_APPS_SCRIPT_WEBHOOK_URL =
   process.env.NEXT_PUBLIC_GOOGLE_SHEET_WEBHOOK_URL ||
@@ -74,6 +75,45 @@ const SUPABASE_SERVICE_KEY =
 export async function submitFieldVerification(
   payload: FieldVerificationPayload
 ): Promise<{ success: boolean; message: string }> {
+  const isOnline = typeof window !== 'undefined' ? navigator.onLine : true;
+  
+  if (!isOnline && typeof window !== 'undefined') {
+    // 1. Add to Offline Sync Queue
+    try {
+      const queue = (await localforage.getItem<FieldVerificationPayload[]>('offline_sync_queue')) || [];
+      queue.push(payload);
+      await localforage.setItem('offline_sync_queue', queue);
+      
+      // 2. Optimistically update local cache
+      const cachedData = await localforage.getItem<PatientRecord[]>('offline_patient_data');
+      if (cachedData && Array.isArray(cachedData)) {
+         const numericId = parseNumericPatientId(payload.patientId);
+         const updatedData = cachedData.map(p => {
+            const pNumeric = parseNumericPatientId(p.Patient_ID);
+            if ((pNumeric !== null && numericId !== null && pNumeric === numericId) || String(p.Patient_ID) === String(payload.patientId)) {
+               return {
+                  ...p,
+                  Lat: payload.lat,
+                  Long: payload.long,
+                  Ward_Name: formatFullWardName(payload.wardName),
+                  Zone: payload.zone || p.Zone,
+                  Location_Photo_Url: payload.locationPhotoUrl || p.Location_Photo_Url,
+                  Remarks: payload.remarks || p.Remarks,
+                  Mobile_Number: payload.mobileNumber || p.Mobile_Number,
+                  Verified_By: payload.verifiedBy,
+                  Verification_Status: 'Verified'
+               };
+            }
+            return p;
+         });
+         await localforage.setItem('offline_patient_data', updatedData);
+      }
+      return { success: true, message: `[OFFLINE] Patient ${payload.patientId} verified locally. Will sync when online!` };
+    } catch (err) {
+      return { success: false, message: 'Failed to queue offline verification.' };
+    }
+  }
+
   const verifiedTimestamp = payload.verifiedAt || new Date().toISOString();
 
   const numericId = parseNumericPatientId(payload.patientId);
@@ -261,4 +301,37 @@ export async function submitFieldVerification(
     success: true,
     message: `Patient ${payload.patientId} location & photo verified successfully!`,
   };
+}
+
+export async function processOfflineQueue(): Promise<void> {
+  const isOnline = typeof window !== 'undefined' ? navigator.onLine : true;
+  if (!isOnline || typeof window === 'undefined') return;
+
+  try {
+    const queue = await localforage.getItem<FieldVerificationPayload[]>('offline_sync_queue');
+    if (!queue || queue.length === 0) return;
+
+    console.log(`Processing ${queue.length} offline verifications...`);
+    
+    const remainingQueue: FieldVerificationPayload[] = [];
+    
+    for (const payload of queue) {
+      try {
+        const res = await submitFieldVerification(payload);
+        if (!res.success) {
+           remainingQueue.push(payload);
+        }
+      } catch (err) {
+         remainingQueue.push(payload);
+      }
+    }
+    
+    if (remainingQueue.length === 0) {
+       await localforage.removeItem('offline_sync_queue');
+    } else {
+       await localforage.setItem('offline_sync_queue', remainingQueue);
+    }
+  } catch (err) {
+    console.error('Failed to process offline sync queue:', err);
+  }
 }

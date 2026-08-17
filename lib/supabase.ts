@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { PatientRecord } from './types';
 import { getZoneForWard } from './wardMapping';
+import localforage from 'localforage';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://oysmagibpobxsipxjzpd.supabase.co';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_JPFPIiEzvNcXFFPLLBtCRQ_jWMs1jqa';
@@ -179,7 +180,10 @@ function parseCSVLine(text: string): string[][] {
 }
 
 export async function fetchPatientData(): Promise<{ data: PatientRecord[]; dataSource: string }> {
-  // 1. Try Supabase (Try primary table 'patients_data', then fallbacks)
+  const isOnline = typeof window !== 'undefined' ? navigator.onLine : true;
+
+  if (isOnline) {
+    // 1. Try Supabase (Try primary table 'patients_data', then fallbacks)
   const tableCandidates = ['patients_data', 'Patients_Data', 'patient_data', 'patients'];
   
   for (const tableName of tableCandidates) {
@@ -267,10 +271,20 @@ export async function fetchPatientData(): Promise<{ data: PatientRecord[]; dataS
             Verified_At: row.Verified_At || row.verified_at || '',
           };
         });
+        const finalData = sortPatientRecordsById(cleaned);
+        
+        if (typeof window !== 'undefined') {
+          try {
+            await localforage.setItem('offline_patient_data', finalData);
+          } catch (err) {
+            console.warn('Failed to cache offline_patient_data:', err);
+          }
+        }
+        
         const label = cleaned.length >= count
           ? `Supabase API (${cleaned.length.toLocaleString()} Records) ⚡`
           : `Supabase API (${cleaned.length.toLocaleString()} of ${count.toLocaleString()} Records) ⚡`;
-        return { data: sortPatientRecordsById(cleaned), dataSource: label };
+        return { data: finalData, dataSource: label };
       }
     } catch (err) {
       console.warn(`Supabase fetch exception for '${tableName}':`, err);
@@ -343,11 +357,35 @@ export async function fetchPatientData(): Promise<{ data: PatientRecord[]; dataS
             Location_Photo_Url: record.Location_Photo_Url || record.location_photo_url || record.photo_url || '',
           });
         }
-        return { data: sortPatientRecordsById(records), dataSource: 'Google Sheets 📊' };
+        const finalData = sortPatientRecordsById(records);
+        
+        if (typeof window !== 'undefined') {
+          try {
+            await localforage.setItem('offline_patient_data', finalData);
+          } catch (err) {
+            console.warn('Failed to cache offline_patient_data:', err);
+          }
+        }
+        
+        return { data: finalData, dataSource: 'Google Sheets 📊' };
       }
     }
   } catch (err) {
     console.error('Google Sheets CSV fallback error:', err);
+  }
+
+  } // Closes if (isOnline)
+
+  // 3. Offline Fallback: Read from localforage cache
+  if (typeof window !== 'undefined') {
+    try {
+      const cachedData = await localforage.getItem<PatientRecord[]>('offline_patient_data');
+      if (cachedData && Array.isArray(cachedData) && cachedData.length > 0) {
+        return { data: cachedData, dataSource: 'Offline Cache 📶' };
+      }
+    } catch (err) {
+      console.warn('Failed to read offline cache', err);
+    }
   }
 
   return { data: [], dataSource: 'Offline ❌' };

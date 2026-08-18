@@ -2,32 +2,36 @@ import { NextResponse } from 'next/server';
 import webpush from 'web-push';
 import { createClient } from '@supabase/supabase-js';
 
-// Configure Web Push with VAPID Keys
-const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || '';
-
-// Needs a "mailto" contact or URL
-if (vapidPublicKey && vapidPrivateKey) {
-  webpush.setVapidDetails(
-    'mailto:admin@nmc-surveillance.org',
-    vapidPublicKey,
-    vapidPrivateKey
-  );
-}
-
-// We need a Service Role Key to bypass RLS when fetching all push_subscriptions in the webhook
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://oysmagibpobxsipxjzpd.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-});
-
 export async function POST(req: Request) {
   try {
+    // Configure Web Push with VAPID Keys
+    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
+    const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || '';
+
+    if (vapidPublicKey && vapidPrivateKey) {
+      webpush.setVapidDetails(
+        'mailto:admin@nmc-surveillance.org',
+        vapidPublicKey,
+        vapidPrivateKey
+      );
+    }
+
+    // Initialize Supabase Client
+    const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://oysmagibpobxsipxjzpd.supabase.co';
+    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+    if (!SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('Missing Supabase keys for webhook.');
+      return NextResponse.json({ error: 'Server Configuration Error' }, { status: 500 });
+    }
+
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+
     const payload = await req.json();
 
     // Ensure this is an INSERT event on the patients table

@@ -1,17 +1,12 @@
 {
-  "name": "NMC Surveillance",
-  "short_name": "NMC Surveillance",
+  "name": "NMC Disease Surveillance",
+  "short_name": "NMC Portal",
   "description": "Nagpur Municipal Corporation Disease Surveillance Portal",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1e3a8a",
   "icons": [
-    {
-      "src": "/favicon.ico",
-      "sizes": "256x256",
-      "type": "image/x-icon"
-    },
     {
       "src": "/icon-192x192.png",
       "sizes": "192x192",

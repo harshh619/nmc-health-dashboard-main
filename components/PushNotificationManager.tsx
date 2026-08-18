@@ -112,7 +112,13 @@ export default function PushNotificationManager({ userSession }: PushNotificatio
     setIsSubscribed(false);
   };
 
-  if (!isSupported) return null;
+  if (!isSupported) {
+    return (
+      <button className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all bg-red-100 text-red-700">
+        Push Not Supported
+      </button>
+    );
+  }
 
   return (
     <button

@@ -2,8 +2,7 @@
 
 const sw = self as any;
 
-// To store current badge count locally in the SW
-let unreadCount = 0;
+
 
 sw.addEventListener('push', (event: any) => {
   if (event.data) {
@@ -23,11 +22,13 @@ sw.addEventListener('push', (event: any) => {
 
       event.waitUntil(
         sw.registration.showNotification(title, options).then(() => {
-          // Update the App Badge Count
-          if ('setAppBadge' in navigator) {
-            unreadCount++;
-            return (navigator as any).setAppBadge(unreadCount);
-          }
+          // Update the App Badge Count by counting currently active notifications
+          return sw.registration.getNotifications().then((notifications: any[]) => {
+            const count = notifications.length;
+            if (navigator && 'setAppBadge' in navigator) {
+              return (navigator as any).setAppBadge(count).catch((err: any) => console.error("Badge error:", err));
+            }
+          });
         })
       );
     } catch (err) {
@@ -39,11 +40,19 @@ sw.addEventListener('push', (event: any) => {
 sw.addEventListener('notificationclick', (event: any) => {
   event.notification.close();
   
-  // Clear the badge count when they click a notification
-  if ('clearAppBadge' in navigator) {
-    unreadCount = 0;
-    (navigator as any).clearAppBadge();
-  }
+  // Recalculate badge count when a notification is clicked
+  event.waitUntil(
+    sw.registration.getNotifications().then((notifications: any[]) => {
+      const count = notifications.length;
+      if (navigator && 'setAppBadge' in navigator) {
+        if (count === 0) {
+          (navigator as any).clearAppBadge();
+        } else {
+          (navigator as any).setAppBadge(count);
+        }
+      }
+    })
+  );
 
   // Open the target URL
   const targetUrl = event.notification.data?.url || '/';
@@ -67,8 +76,7 @@ sw.addEventListener('notificationclick', (event: any) => {
 // Clear badge count if the app is opened or focused
 sw.addEventListener('message', (event: any) => {
   if (event.data === 'clearAppBadge') {
-    if ('clearAppBadge' in navigator) {
-      unreadCount = 0;
+    if (navigator && 'clearAppBadge' in navigator) {
       (navigator as any).clearAppBadge();
     }
   }

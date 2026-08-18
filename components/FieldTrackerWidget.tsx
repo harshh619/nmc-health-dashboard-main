@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import {
   Navigation,
@@ -80,6 +80,21 @@ export default function FieldTrackerWidget({
   }, [patientData, userSession]);
 
   const activeRecords = activeTab === 'pending' ? pendingRecords : verifiedRecords;
+
+  // Sync the App Badge with the pending records count
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && 'setAppBadge' in navigator) {
+      try {
+        if (pendingRecords.length > 0) {
+          (navigator as any).setAppBadge(pendingRecords.length);
+        } else {
+          (navigator as any).clearAppBadge();
+        }
+      } catch (err) {
+        console.error('Error setting app badge:', err);
+      }
+    }
+  }, [pendingRecords.length]);
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm mb-4 transition-colors duration-300">

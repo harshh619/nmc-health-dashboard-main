@@ -22,13 +22,10 @@ sw.addEventListener('push', (event: any) => {
 
       event.waitUntil(
         sw.registration.showNotification(title, options).then(() => {
-          // Update the App Badge Count by counting currently active notifications
-          return sw.registration.getNotifications().then((notifications: any[]) => {
-            const count = notifications.length;
-            if (navigator && 'setAppBadge' in navigator) {
-              return (navigator as any).setAppBadge(count).catch((err: any) => console.error("Badge error:", err));
-            }
-          });
+          // Update the App Badge Count from the webhook payload (which includes old pending cases)
+          if (navigator && 'setAppBadge' in navigator && data.badgeCount !== undefined) {
+            return (navigator as any).setAppBadge(data.badgeCount).catch((err: any) => console.error("Badge error:", err));
+          }
         })
       );
     } catch (err) {
@@ -40,20 +37,6 @@ sw.addEventListener('push', (event: any) => {
 sw.addEventListener('notificationclick', (event: any) => {
   event.notification.close();
   
-  // Recalculate badge count when a notification is clicked
-  event.waitUntil(
-    sw.registration.getNotifications().then((notifications: any[]) => {
-      const count = notifications.length;
-      if (navigator && 'setAppBadge' in navigator) {
-        if (count === 0) {
-          (navigator as any).clearAppBadge();
-        } else {
-          (navigator as any).setAppBadge(count);
-        }
-      }
-    })
-  );
-
   // Open the target URL
   const targetUrl = event.notification.data?.url || '/';
   

@@ -41,13 +41,21 @@ export async function POST(req: Request) {
       const title = `New ${newPatient.Disease || 'Case'} Reported`;
       const body = `${newPatient.Patient_Name || 'A patient'} was reported in ${newPatient.Ward_Name || 'an unknown ward'}.`;
       
+      // Rough estimate of pending cases to update the app badge
+      const { count: pendingCount } = await supabaseAdmin
+        .from('patients_data')
+        .select('*', { count: 'exact', head: true })
+        .is('Remarks', null)
+        .or('Lat.is.null,Long.is.null,Ward_Name.eq.Unassigned,Ward_Name.is.null');
+
       const messagePayload = JSON.stringify({
         title,
         body,
         icon: '/icon-192x192.png',
         badge: '/icon-192x192.png',
         url: '/', // Optional: URL to open when notification is clicked
-        patientId: newPatient.Patient_ID
+        patientId: newPatient.Patient_ID,
+        badgeCount: pendingCount || 1
       });
 
       // Fetch all push subscriptions

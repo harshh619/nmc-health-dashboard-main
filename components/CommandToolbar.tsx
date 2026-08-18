@@ -16,6 +16,7 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { UserSession } from '../lib/types';
+import PushNotificationManager from './PushNotificationManager';
 
 interface CommandToolbarProps {
   dataSource: string;
@@ -212,6 +213,9 @@ export default function CommandToolbar({
             <span className="hidden sm:inline">Privacy</span>
           </button>
         )}
+
+        {/* Push Notifications Toggle */}
+        <PushNotificationManager userSession={userSession} />
 
         {/* Dark Mode / Light Mode Toggle */}
         <button

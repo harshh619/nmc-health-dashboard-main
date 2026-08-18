@@ -1,6 +1,6 @@
 {
   "name": "NMC Disease Surveillance",
-  "short_name": "NMC Surveillance App",
+  "short_name": "NMC Disease Surveillance App",
   "description": "Nagpur Municipal Corporation Disease Surveillance Portal",
   "start_url": "/",
   "display": "standalone",

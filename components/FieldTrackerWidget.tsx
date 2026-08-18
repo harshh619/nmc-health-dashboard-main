@@ -139,7 +139,7 @@ export default function FieldTrackerWidget({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-80 overflow-y-auto pr-1">
+        <div className="flex flex-col gap-3 overflow-y-auto pr-1 pb-4">
           {activeRecords.slice(0, 30).map((p) => {
             const isPending = isVerificationPending(p);
             const gMapsUrl =

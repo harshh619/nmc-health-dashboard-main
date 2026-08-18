@@ -583,14 +583,42 @@ export default function Home() {
               onTogglePrivacyMode={() => setIsPrivacyMode((prev) => !prev)}
             />
 
-            {/* Real-Time Field Verification & GPS/Photo Location Tracker Widget */}
+            {/* Real-Time Field Verification & GPS/Photo Location Tracker Sidebar */}
             {showFieldTracker && (
-              <FieldTrackerWidget
-                patientData={filteredData}
-                userSession={userSession}
-                onRefreshData={loadData}
-                isPrivacyMode={isPrivacyMode}
-              />
+              <div className="fixed inset-0 z-[100000] flex justify-end">
+                {/* Backdrop */}
+                <div 
+                  className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm cursor-pointer" 
+                  onClick={() => setShowFieldTracker(false)} 
+                />
+                
+                {/* Sliding Sidebar Panel */}
+                <div className="relative w-full sm:w-[400px] md:w-[450px] h-full bg-[#f8fafc] dark:bg-slate-950 shadow-2xl flex flex-col border-l border-slate-200 dark:border-slate-800">
+                  {/* Sidebar Header */}
+                  <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
+                    <h2 className="font-extrabold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                      <span className="text-amber-500">📍</span> Field Verification
+                    </h2>
+                    <button 
+                      onClick={() => setShowFieldTracker(false)}
+                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs transition-colors"
+                      title="Close Tracker"
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
+                  
+                  {/* Sidebar Content */}
+                  <div className="flex-1 overflow-y-auto p-4">
+                    <FieldTrackerWidget
+                      patientData={filteredData}
+                      userSession={userSession}
+                      onRefreshData={loadData}
+                      isPrivacyMode={isPrivacyMode}
+                    />
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* Active View Context & Bento Metrics Overview */}

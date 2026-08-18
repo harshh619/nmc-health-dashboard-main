@@ -5,7 +5,7 @@ const sw = self as any;
 // To store current badge count locally in the SW
 let unreadCount = 0;
 
-sw.addEventListener('push', (event) => {
+sw.addEventListener('push', (event: any) => {
   if (event.data) {
     try {
       const data = event.data.json();
@@ -26,7 +26,7 @@ sw.addEventListener('push', (event) => {
           // Update the App Badge Count
           if ('setAppBadge' in navigator) {
             unreadCount++;
-            return navigator.setAppBadge(unreadCount);
+            return (navigator as any).setAppBadge(unreadCount);
           }
         })
       );
@@ -36,20 +36,20 @@ sw.addEventListener('push', (event) => {
   }
 });
 
-sw.addEventListener('notificationclick', (event) => {
+sw.addEventListener('notificationclick', (event: any) => {
   event.notification.close();
   
   // Clear the badge count when they click a notification
   if ('clearAppBadge' in navigator) {
     unreadCount = 0;
-    navigator.clearAppBadge();
+    (navigator as any).clearAppBadge();
   }
 
   // Open the target URL
   const targetUrl = event.notification.data?.url || '/';
   
   event.waitUntil(
-    sw.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    sw.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList: any) => {
       // If a window is already open, focus it
       for (const client of clientList) {
         if (client.url === targetUrl && 'focus' in client) {
@@ -65,11 +65,11 @@ sw.addEventListener('notificationclick', (event) => {
 });
 
 // Clear badge count if the app is opened or focused
-sw.addEventListener('message', (event) => {
+sw.addEventListener('message', (event: any) => {
   if (event.data === 'clearAppBadge') {
     if ('clearAppBadge' in navigator) {
       unreadCount = 0;
-      navigator.clearAppBadge();
+      (navigator as any).clearAppBadge();
     }
   }
 });

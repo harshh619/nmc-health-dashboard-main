@@ -464,7 +464,7 @@ export default function Home() {
       )}
 
       {/* Screen Edge Floating Restore Tab Button (when sidebar is collapsed) */}
-      {isAuthenticated && isSidebarCollapsed && !isFieldOfficer && (
+      {isAuthenticated && isSidebarCollapsed && (
         <button
           onClick={() => setIsSidebarCollapsed(false)}
           className="hidden lg:flex fixed left-0 top-1/2 -translate-y-1/2 z-[99999] bg-blue-900 hover:bg-blue-800 text-white rounded-r-xl py-3 px-2 shadow-2xl border-r border-t border-b border-blue-700 flex-col items-center gap-1.5 transition-all duration-300 active:scale-95 text-xs font-bold animate-pulse group cursor-pointer"
@@ -479,7 +479,7 @@ export default function Home() {
       )}
 
       {/* MOBILE Screen Edge Floating Filter Button */}
-      {isAuthenticated && !isFieldOfficer && !isMobileSidebarOpen && (
+      {isAuthenticated && !isMobileSidebarOpen && (
         <button
           onClick={() => setIsMobileSidebarOpen(true)}
           className="lg:hidden fixed left-0 top-1/2 -translate-y-1/2 z-[99999] bg-blue-900 hover:bg-blue-800 text-white rounded-r-xl py-3 px-2 shadow-2xl border-r border-t border-b border-blue-700 flex flex-col items-center gap-1.5 transition-all duration-300 active:scale-95 text-xs font-bold animate-pulse group cursor-pointer"
@@ -497,10 +497,9 @@ export default function Home() {
       ) : (
         <div className="w-full max-w-[1720px] mx-auto px-2 sm:px-4 md:px-6 py-2">
           {/* 🧊 1. FROZEN FIXED LEFT SIDEBAR (Always 100% visible at fixed top-4 left-4) */}
-          {!isFieldOfficer && (
-            <>
-              {/* DESKTOP SIDEBAR */}
-              {!isSidebarCollapsed && (
+          <>
+            {/* DESKTOP SIDEBAR */}
+            {!isSidebarCollapsed && (
                 <div className="hidden lg:block fixed top-2 left-4 lg:w-[285px] xl:w-[325px] max-h-[calc(100vh-1rem)] overflow-y-auto z-30 transition-all duration-300">
                   <SidebarFilters
                     allPatientData={patientData}
@@ -556,12 +555,11 @@ export default function Home() {
                 </div>
               )}
             </>
-          )}
 
           {/* 2. RIGHT WORKSPACE (Offset by lg:pl-[300px] xl:pl-[340px] so it scrolls smoothly alongside the frozen sidebar) */}
           <div
             className={`w-full max-w-full mx-auto transition-all duration-300 ${
-              isSidebarCollapsed || isFieldOfficer
+              isSidebarCollapsed
                 ? 'lg:pl-0 xl:pl-0'
                 : 'lg:pl-[300px] xl:pl-[340px]'
             } space-y-2.5`}

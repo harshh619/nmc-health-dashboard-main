@@ -7,11 +7,13 @@ const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || '';
 
 // Needs a "mailto" contact or URL
-webpush.setVapidDetails(
-  'mailto:admin@nmc-surveillance.org',
-  vapidPublicKey,
-  vapidPrivateKey
-);
+if (vapidPublicKey && vapidPrivateKey) {
+  webpush.setVapidDetails(
+    'mailto:admin@nmc-surveillance.org',
+    vapidPublicKey,
+    vapidPrivateKey
+  );
+}
 
 // We need a Service Role Key to bypass RLS when fetching all push_subscriptions in the webhook
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://oysmagibpobxsipxjzpd.supabase.co';

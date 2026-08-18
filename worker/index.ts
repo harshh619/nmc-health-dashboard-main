@@ -1,6 +1,6 @@
 // Service Worker custom code for Push Notifications and Badging
 
-const sw = self as unknown as ServiceWorkerGlobalScope;
+const sw = self as any;
 
 // To store current badge count locally in the SW
 let unreadCount = 0;

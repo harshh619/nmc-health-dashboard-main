@@ -1,10 +1,11 @@
 // Service Worker custom code for Push Notifications and Badging
-declare const self: ServiceWorkerGlobalScope;
+
+const sw = self as unknown as ServiceWorkerGlobalScope;
 
 // To store current badge count locally in the SW
 let unreadCount = 0;
 
-self.addEventListener('push', (event) => {
+sw.addEventListener('push', (event) => {
   if (event.data) {
     try {
       const data = event.data.json();
@@ -21,7 +22,7 @@ self.addEventListener('push', (event) => {
       };
 
       event.waitUntil(
-        self.registration.showNotification(title, options).then(() => {
+        sw.registration.showNotification(title, options).then(() => {
           // Update the App Badge Count
           if ('setAppBadge' in navigator) {
             unreadCount++;
@@ -35,7 +36,7 @@ self.addEventListener('push', (event) => {
   }
 });
 
-self.addEventListener('notificationclick', (event) => {
+sw.addEventListener('notificationclick', (event) => {
   event.notification.close();
   
   // Clear the badge count when they click a notification
@@ -48,7 +49,7 @@ self.addEventListener('notificationclick', (event) => {
   const targetUrl = event.notification.data?.url || '/';
   
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    sw.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       // If a window is already open, focus it
       for (const client of clientList) {
         if (client.url === targetUrl && 'focus' in client) {
@@ -56,15 +57,15 @@ self.addEventListener('notificationclick', (event) => {
         }
       }
       // Otherwise open a new window
-      if (self.clients.openWindow) {
-        return self.clients.openWindow(targetUrl);
+      if (sw.clients.openWindow) {
+        return sw.clients.openWindow(targetUrl);
       }
     })
   );
 });
 
 // Clear badge count if the app is opened or focused
-self.addEventListener('message', (event) => {
+sw.addEventListener('message', (event) => {
   if (event.data === 'clearAppBadge') {
     if ('clearAppBadge' in navigator) {
       unreadCount = 0;

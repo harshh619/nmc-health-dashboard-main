@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">NMCApp</string>
+    <string name="title_activity_main">NMCApp</string>
+    <string name="package_name">com.nmc.diseasesurveillance</string>
+    <string name="custom_url_scheme">com.nmc.diseasesurveillance</string>
+</resources>

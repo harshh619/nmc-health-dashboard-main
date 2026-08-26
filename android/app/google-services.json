@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "188820326084",
+    "project_id": "nmc-patient-tracking-app",
+    "storage_bucket": "nmc-patient-tracking-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:188820326084:android:9f582183561f43cfd66b91",
+        "android_client_info": {
+          "package_name": "com.nmc.diseasesurveillance"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCvpoWON1tsD7I9Qn7U5rrQhs9N3PyTidE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

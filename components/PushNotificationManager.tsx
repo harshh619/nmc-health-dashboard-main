@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Bell, BellOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { UserSession } from '../lib/types';
+import { Capacitor } from '@capacitor/core';
+import { PushNotifications } from '@capacitor/push-notifications';
 
 interface PushNotificationManagerProps {
   userSession?: UserSession | null;
@@ -27,11 +29,25 @@ export default function PushNotificationManager({ userSession }: PushNotificatio
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
+    if (Capacitor.isNativePlatform()) {
+      setIsSupported(true);
+      checkNativeSubscription();
+    } else if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
       setIsSupported(true);
       checkSubscription();
     }
   }, []);
+
+  const checkNativeSubscription = async () => {
+    // Native apps don't have a direct "isSubscribed" boolean like web push, 
+    // but we can check if we have permissions granted and assume subscribed if so.
+    try {
+      const permStatus = await PushNotifications.checkPermissions();
+      setIsSubscribed(permStatus.receive === 'granted');
+    } catch (err) {
+      console.error('Error checking native push permissions:', err);
+    }
+  };
 
   const checkSubscription = async () => {
     try {
@@ -47,15 +63,82 @@ export default function PushNotificationManager({ userSession }: PushNotificatio
     setIsLoading(true);
     try {
       if (isSubscribed) {
-        await unsubscribe();
+        if (Capacitor.isNativePlatform()) {
+          await unsubscribeNative();
+        } else {
+          await unsubscribe();
+        }
       } else {
-        await subscribe();
+        if (Capacitor.isNativePlatform()) {
+          await subscribeNative();
+        } else {
+          await subscribe();
+        }
       }
     } catch (err) {
       console.error('Subscription error:', err);
       alert('Failed to toggle push notifications. See console.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const subscribeNative = async () => {
+    try {
+      let permStatus = await PushNotifications.checkPermissions();
+
+      if (permStatus.receive === 'prompt') {
+        permStatus = await PushNotifications.requestPermissions();
+      }
+
+      if (permStatus.receive !== 'granted') {
+        alert('You have blocked notifications. Please unblock them in your device settings.');
+        return;
+      }
+
+      await PushNotifications.register();
+      
+      // We will listen for the registration event to get the token and save it to Supabase
+      PushNotifications.addListener('registration', async (token) => {
+        const { error } = await supabase.from('push_subscriptions').insert({
+          username: userSession?.username || 'anonymous',
+          endpoint: token.value, // We reuse endpoint field for FCM token for simplicity, or we can use a new field
+          fcm_token: token.value,
+          is_native: true
+        });
+        
+        if (error && error.code !== '23505') {
+          console.error('Failed to save native subscription:', error);
+        }
+        setIsSubscribed(true);
+      });
+
+      PushNotifications.addListener('registrationError', (error) => {
+        console.error('Error registering native push:', error);
+        alert('Failed to register for native notifications.');
+      });
+
+    } catch (err) {
+      console.error('Native subscribe error:', err);
+    }
+  };
+
+  const unsubscribeNative = async () => {
+    try {
+      // Capacitor doesn't have a direct "unregister" method, but we can delete the token from our DB
+      // and stop listening to notifications.
+      await PushNotifications.removeAllListeners();
+      setIsSubscribed(false);
+      
+      // We need a way to identify the user's token, but for now we can just delete by username and native flag
+      await supabase
+        .from('push_subscriptions')
+        .delete()
+        .eq('username', userSession?.username || 'anonymous')
+        .eq('is_native', true);
+        
+    } catch (err) {
+      console.error('Native unsubscribe error:', err);
     }
   };
 

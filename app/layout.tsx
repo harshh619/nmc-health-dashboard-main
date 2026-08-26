@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     'Nagpur Municipal Corporation Disease Surveillance Portal powered by Metropolitan Surveillance Unit (MSU Nagpur). Real-time disease monitoring, hot spot detection, and analytics.',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'NMC Surveillance',
   },
   formatDetection: {
@@ -26,6 +26,7 @@ export const viewport: import('next').Viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: '#1e3a8a',
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({

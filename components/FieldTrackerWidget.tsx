@@ -88,9 +88,17 @@ export default function FieldTrackerWidget({
         // 1. Try Web API (PWA)
         if (typeof navigator !== 'undefined' && 'setAppBadge' in navigator) {
           if (pendingRecords.length > 0) {
-            (navigator as any).setAppBadge(pendingRecords.length);
+            (navigator as any).setAppBadge(pendingRecords.length).catch(console.error);
+            // iOS Fallback: send to service worker
+            if (navigator.serviceWorker?.controller) {
+              navigator.serviceWorker.controller.postMessage({ type: 'setAppBadge', count: pendingRecords.length });
+            }
           } else {
-            (navigator as any).clearAppBadge();
+            (navigator as any).clearAppBadge().catch(console.error);
+            // iOS Fallback: send to service worker
+            if (navigator.serviceWorker?.controller) {
+              navigator.serviceWorker.controller.postMessage('clearAppBadge');
+            }
           }
         }
         

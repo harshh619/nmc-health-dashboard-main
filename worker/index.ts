@@ -56,11 +56,15 @@ sw.addEventListener('notificationclick', (event: any) => {
   );
 });
 
-// Clear badge count if the app is opened or focused
+// Sync badge count via Service Worker for iOS compatibility
 sw.addEventListener('message', (event: any) => {
   if (event.data === 'clearAppBadge') {
     if (navigator && 'clearAppBadge' in navigator) {
-      (navigator as any).clearAppBadge();
+      (navigator as any).clearAppBadge().catch(console.error);
+    }
+  } else if (event.data && event.data.type === 'setAppBadge') {
+    if (navigator && 'setAppBadge' in navigator) {
+      (navigator as any).setAppBadge(event.data.count).catch(console.error);
     }
   }
 });

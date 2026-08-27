@@ -83,17 +83,36 @@ export default function FieldTrackerWidget({
 
   // Sync the App Badge with the pending records count
   useEffect(() => {
-    if (typeof navigator !== 'undefined' && 'setAppBadge' in navigator) {
+    const updateBadge = async () => {
       try {
-        if (pendingRecords.length > 0) {
-          (navigator as any).setAppBadge(pendingRecords.length);
-        } else {
-          (navigator as any).clearAppBadge();
+        // 1. Try Web API (PWA)
+        if (typeof navigator !== 'undefined' && 'setAppBadge' in navigator) {
+          if (pendingRecords.length > 0) {
+            (navigator as any).setAppBadge(pendingRecords.length);
+          } else {
+            (navigator as any).clearAppBadge();
+          }
         }
+        
+        // 2. Try Capacitor Badge (Native App)
+        import('@capawesome/capacitor-badge').then(async ({ Badge }) => {
+          const result = await Badge.isSupported();
+          if (result.isSupported) {
+            if (pendingRecords.length > 0) {
+              await Badge.set({ count: pendingRecords.length });
+            } else {
+              await Badge.clear();
+            }
+          }
+        }).catch(err => {
+          // Plugin might not be available in standard browser environment, ignore
+        });
       } catch (err) {
         console.error('Error setting app badge:', err);
       }
-    }
+    };
+    
+    updateBadge();
   }, [pendingRecords.length]);
 
   return (

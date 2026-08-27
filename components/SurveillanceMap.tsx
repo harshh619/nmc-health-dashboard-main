@@ -173,27 +173,16 @@ export default function SurveillanceMap({
 
     leafletMapRef.current = map;
 
-    // Tile Layers
-    const cartoDb = L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-      { maxZoom: 19 }
-    );
-    const cartoNoLabels = L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
-      { maxZoom: 19 }
-    );
     const osm = L.tileLayer(
       'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       { maxZoom: 19 }
     );
 
-    cartoDb.addTo(map);
+    osm.addTo(map);
 
     // Standard Leaflet Layer Control (Positioned Top Right)
     const baseMaps = {
-      'Clean B&W Map': cartoDb,
-      'Clean No-Labels Map': cartoNoLabels,
-      'Default Map': osm,
+      'Default Map (OSM)': osm,
     };
     L.control.layers(baseMaps, undefined, { position: 'topright', collapsed: true }).addTo(map);
 

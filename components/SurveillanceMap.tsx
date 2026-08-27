@@ -177,12 +177,33 @@ export default function SurveillanceMap({
       'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       { maxZoom: 19 }
     );
+    
+    // Free Esri Canvas Map (Great replacement for Carto light)
+    const esriGray = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 16 }
+    );
+    
+    // Satellite map
+    const satellite = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 19 }
+    );
+    
+    // Topographic map
+    const topo = L.tileLayer(
+      'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+      { maxZoom: 17 }
+    );
 
     osm.addTo(map);
 
     // Standard Leaflet Layer Control (Positioned Top Right)
     const baseMaps = {
       'Default Map (OSM)': osm,
+      'Clean Gray Map (Free)': esriGray,
+      'Satellite View (Free)': satellite,
+      'Topographic Map (Free)': topo,
     };
     L.control.layers(baseMaps, undefined, { position: 'topright', collapsed: true }).addTo(map);
 

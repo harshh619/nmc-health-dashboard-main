@@ -98,10 +98,16 @@ export default function FieldTrackerWidget({
         import('@capawesome/capacitor-badge').then(async ({ Badge }) => {
           const result = await Badge.isSupported();
           if (result.isSupported) {
-            if (pendingRecords.length > 0) {
-              await Badge.set({ count: pendingRecords.length });
-            } else {
-              await Badge.clear();
+            let perm = await Badge.checkPermissions();
+            if (perm.display !== 'granted') {
+              perm = await Badge.requestPermissions();
+            }
+            if (perm.display === 'granted') {
+              if (pendingRecords.length > 0) {
+                await Badge.set({ count: pendingRecords.length });
+              } else {
+                await Badge.clear();
+              }
             }
           }
         }).catch(err => {

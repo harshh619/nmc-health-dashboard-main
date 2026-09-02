@@ -318,6 +318,9 @@ export default function SurveillanceMap({
       return '#bd0026';
     };
 
+    const activeZonesCount = Object.keys(cleanZoneCounts).filter(z => z && z.toLowerCase() !== 'unassigned' && z.toLowerCase() !== 'unknown zone').length;
+    const isSingleZoneView = activeZonesCount === 1;
+
     // GeoJSON Choropleth Layer
     const geoJsonLayer = L.geoJSON(geoData as any, {
       style: (feature: any) => {
@@ -328,7 +331,7 @@ export default function SurveillanceMap({
         const hasCases = count > 0;
 
         return {
-          color: '#1d4ed8', // Always blue outline
+          color: (isSingleZoneView && hasCases) ? '#ffffff' : '#1d4ed8',
           weight: isCriticalHotspot ? 2.5 : hasCases ? 1.5 : 1.2,
           fillColor: getDensityColor(count),
           fillOpacity: hasCases ? 0.85 : 0.05,

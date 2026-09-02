@@ -101,7 +101,14 @@ const SidebarFilters = React.memo(function SidebarFilters({
   // Unique options for Zones (Based on Date -> Disease)
   const allZones = useMemo(() => {
     return Array.from(
-      new Set(dataAfterDisease.map((d) => getRowZone(d)).filter((z): z is string => Boolean(z)))
+      new Set(
+        dataAfterDisease
+          .map((d) => getRowZone(d))
+          .filter(
+            (z): z is string =>
+              Boolean(z) && z.toLowerCase() !== 'unassigned' && z.toLowerCase() !== 'unknown zone'
+          )
+      )
     ).sort((a, b) => {
       const numA = parseInt(a, 10) || 0;
       const numB = parseInt(b, 10) || 0;

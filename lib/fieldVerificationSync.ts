@@ -121,14 +121,19 @@ export async function submitFieldVerification(
   const formattedWard = formatFullWardName(payload.wardName);
   const autoZone = getZoneForWard(formattedWard, payload.zone);
 
+  const isIssue = Boolean(payload.remarks && payload.remarks.trim() !== '');
+
   const updateFields: any = {
     Ward_Name: formattedWard,
-    Lat: payload.lat,
-    Long: payload.long,
     Zone: autoZone || payload.zone || 'Unassigned',
     Remarks: payload.remarks || null,
     Mobile_Number: payload.mobileNumber || null,
   };
+
+  if (!isIssue) {
+    updateFields.Lat = payload.lat;
+    updateFields.Long = payload.long;
+  }
 
   let supabaseSuccess = false;
 
@@ -255,8 +260,8 @@ export async function submitFieldVerification(
               Status: payload.status || 'Active',
               Date: payload.date || new Date().toISOString(),
               Ward_Name: formattedWard,
-              Lat: payload.lat,
-              Long: payload.long,
+              Lat: isIssue ? null : payload.lat,
+              Long: isIssue ? null : payload.long,
               Zone: payload.zone || 'Unassigned',
               Remarks: payload.remarks || null,
               Mobile_Number: payload.mobileNumber || null,
@@ -275,23 +280,25 @@ export async function submitFieldVerification(
   // 2. Dispatch Webhook payload to Google Apps Script (if webhook URL is configured)
   if (GOOGLE_APPS_SCRIPT_WEBHOOK_URL) {
     try {
+      const isIssue = Boolean(payload.remarks && payload.remarks.trim() !== '');
       await fetch(GOOGLE_APPS_SCRIPT_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         mode: 'no-cors',
         body: JSON.stringify({
-          action: 'UPDATE_PATIENT_LOCATION',
+          action: isIssue ? 'REPORT_ISSUE' : 'UPDATE_PATIENT_LOCATION',
           patientId: payload.patientId,
           patientName: payload.patientName,
           zone: payload.zone,
           wardName: formattedWard,
-          lat: payload.lat,
-          long: payload.long,
+          lat: isIssue ? '' : payload.lat,
+          long: isIssue ? '' : payload.long,
           locationPhotoUrl: payload.locationPhotoUrl ? 'Photo Uploaded to DB' : '',
           verifiedBy: payload.verifiedBy,
           verifiedAt: verifiedTimestamp,
           remarks: payload.remarks || '',
           mobileNumber: payload.mobileNumber || '',
+          isIssue: isIssue
         }),
       });
     } catch (err) {

@@ -18,7 +18,7 @@ Replace all code in `Code.gs` with this master script:
 ```javascript
 // =====================================================================
 // MASTER GOOGLE SHEETS <---> SUPABASE <---> FIELD APP SYNC SCRIPT
-// WITH AUTOMATIC WARD ➔ ZONE AUTO-FILL ENGINE
+// WITH AUTOMATIC TRUE UPSERT ENGINE (CREATES NEW AND UPDATES EXISTING)
 // =====================================================================
 
 var SUPABASE_URL = "https://oysmagibpobxsipxjzpd.supabase.co/rest/v1/patients_data";
@@ -35,35 +35,14 @@ var WARD_ZONE_LOOKUP = {
   "7": "9 AashiNagar", "07": "9 AashiNagar",
   "8": "6 Gandhibag", "08": "6 Gandhibag",
   "9": "10 Mangalwari", "09": "10 Mangalwari",
-  "10": "10 Mangalwari",
-  "11": "10 Mangalwari",
-  "12": "2 Dharampeth",
-  "13": "2 Dharampeth",
-  "14": "2 Dharampeth",
-  "15": "2 Dharampeth",
-  "16": "1 Laxmi Nagar",
-  "17": "4 Dhantoli",
-  "18": "6 Gandhibag",
-  "19": "6 Gandhibag",
-  "20": "7 Satranjipura",
-  "21": "7 Satranjipura",
-  "22": "6 Gandhibag",
-  "23": "8 Lakadganj",
-  "24": "8 Lakadganj",
-  "25": "8 Lakadganj",
-  "26": "5 Nehru Nagar",
-  "27": "5 Nehru Nagar",
-  "28": "5 Nehru Nagar",
-  "29": "3 Hanuman Nagar",
-  "30": "5 Nehru Nagar",
-  "31": "3 Hanuman Nagar",
-  "32": "3 Hanuman Nagar",
-  "33": "4 Dhantoli",
-  "34": "3 Hanuman Nagar",
-  "35": "4 Dhantoli",
-  "36": "1 Laxmi Nagar",
-  "37": "1 Laxmi Nagar",
-  "38": "1 Laxmi Nagar"
+  "10": "10 Mangalwari", "11": "10 Mangalwari",
+  "12": "2 Dharampeth", "13": "2 Dharampeth", "14": "2 Dharampeth", "15": "2 Dharampeth",
+  "16": "1 Laxmi Nagar", "17": "4 Dhantoli", "18": "6 Gandhibag", "19": "6 Gandhibag",
+  "20": "7 Satranjipura", "21": "7 Satranjipura", "22": "6 Gandhibag", "23": "8 Lakadganj",
+  "24": "8 Lakadganj", "25": "8 Lakadganj", "26": "5 Nehru Nagar", "27": "5 Nehru Nagar",
+  "28": "5 Nehru Nagar", "29": "3 Hanuman Nagar", "30": "5 Nehru Nagar", "31": "3 Hanuman Nagar",
+  "32": "3 Hanuman Nagar", "33": "4 Dhantoli", "34": "3 Hanuman Nagar", "35": "4 Dhantoli",
+  "36": "1 Laxmi Nagar", "37": "1 Laxmi Nagar", "38": "1 Laxmi Nagar"
 };
 
 function getZoneFromWard(w) {
@@ -85,7 +64,6 @@ function getTargetSheet() {
   return sheet;
 }
 
-// Helper: Standardize Ward Name to "Prabhag No. XX" format
 function formatFullWardName(w) {
   if (!w) return "Unassigned";
   var str = String(w).trim();
@@ -100,34 +78,8 @@ function formatFullWardName(w) {
   return str;
 }
 
-// Helper: Format Date safely for Supabase Timestamp NOT NULL column constraint
-function formatSupabaseDate(val) {
-  if (val instanceof Date) {
-    return val.toISOString();
-  }
-  if (val && typeof val === 'string' && val.trim() !== "") {
-    var str = val.trim();
-    var parts = str.split(/[\/\-]/);
-    if (parts.length === 3) {
-      var p0 = parseInt(parts[0], 10);
-      var p1 = parseInt(parts[1], 10);
-      var p2 = parseInt(parts[2], 10);
-      if (!isNaN(p2) && p2 > 1000) {
-        var mm = String(Math.min(Math.max(p1, 1), 12)).padStart(2, '0');
-        var dd = String(Math.min(Math.max(p0, 1), 31)).padStart(2, '0');
-        return p2 + "-" + mm + "-" + dd + "T00:00:00.000Z";
-      }
-    }
-    var d = new Date(str);
-    if (!isNaN(d.getTime())) {
-      return d.toISOString();
-    }
-  }
-  return new Date().toISOString();
-}
-
 // =====================================================================
-// 1. BULK SYNC & AUTOMATIC ZONE AUTO-FILL FOR ENTIRE SHEET
+// 1. BULK SYNC & AUTOMATIC ZONE AUTO-FILL FOR ENTIRE SHEET (UPSERT)
 // =====================================================================
 function syncAllExistingRows() {
   var sheet = getTargetSheet();
@@ -140,27 +92,27 @@ function syncAllExistingRows() {
 
   var headers = rows[0].map(function(h) { return String(h).trim(); });
 
-  var idCol = -1, nameCol = -1, dateCol = -1, diseaseCol = -1, wardCol = -1, latCol = -1, longCol = -1, statusCol = -1, zoneCol = -1;
+  var idCol = -1, nameCol = -1, dateCol = -1, diseaseCol = -1, wardCol = -1, latCol = -1, longCol = -1, statusCol = -1, zoneCol = -1, remarkCol = -1, mobileCol = -1;
 
   for (var h = 0; h < headers.length; h++) {
     var norm = headers[h].toLowerCase().replace(/\s+/g, '_');
-    if (norm === "patient_id" || norm === "id" || norm === "patient_no" || norm.indexOf("patient") !== -1 || norm.indexOf("id") !== -1) {
-      if (idCol === -1) idCol = h;
-    }
+    // FIX: Strict check for Patient ID so it doesn't match Patient Name
+    if (norm === "patient_id" || norm === "id" || norm === "patient_no") idCol = h;
     if (norm === "patient_name" || norm === "name") nameCol = h;
     if (norm === "date") dateCol = h;
     if (norm === "disease") diseaseCol = h;
-    if (norm === "ward_name" || norm === "ward" || norm.indexOf("prabhag") !== -1 || norm.indexOf("ward") !== -1) {
-      if (wardCol === -1) wardCol = h;
-    }
+    if (norm === "ward_name" || norm === "ward" || norm.indexOf("prabhag") !== -1 || norm.indexOf("ward") !== -1) wardCol = h;
     if (norm === "lat" || norm === "latitude") latCol = h;
     if (norm === "long" || norm === "longitude") longCol = h;
-    if (norm === "status") statusCol = h;
+    if (norm === "status" || norm === "verification_status") statusCol = h;
     if (norm === "zone") zoneCol = h;
+    if (norm === "remark" || norm === "remarks") remarkCol = h; 
+    if (norm === "user_mobile" || norm === "user_mobile_number" || norm === "mobile_number" || norm.indexOf("mobile") !== -1) mobileCol = h;
   }
 
   if (idCol === -1) idCol = 0;
 
+  var bulkPayload = [];
   var successCount = 0;
 
   for (var i = 1; i < rows.length; i++) {
@@ -174,135 +126,216 @@ function syncAllExistingRows() {
 
     var wardVal = wardCol !== -1 && rowData[wardCol] ? formatFullWardName(rowData[wardCol]) : "Unassigned";
     var zoneVal = zoneCol !== -1 && rowData[zoneCol] ? String(rowData[zoneCol]).trim() : "";
+    var remarkVal = remarkCol !== -1 && rowData[remarkCol] ? String(rowData[remarkCol]).trim() : ""; 
+    var statusVal = statusCol !== -1 && rowData[statusCol] ? String(rowData[statusCol]).trim() : null; 
+    var mobileVal = mobileCol !== -1 && rowData[mobileCol] ? String(rowData[mobileCol]).trim() : null; 
+    var nameVal = nameCol !== -1 && rowData[nameCol] ? String(rowData[nameCol]).trim() : null;
+    var diseaseVal = diseaseCol !== -1 && rowData[diseaseCol] ? String(rowData[diseaseCol]).trim() : null;
+    
+    // Parse Date properly for Supabase
+    var dateVal = null;
+    if (dateCol !== -1 && rowData[dateCol]) {
+      if (rowData[dateCol] instanceof Date) {
+        dateVal = rowData[dateCol].toISOString();
+      } else {
+        dateVal = String(rowData[dateCol]).trim();
+      }
+    }
 
-    // Automatic Zone Auto-Fill in Google Sheet if Zone is empty or Unassigned
     if ((!zoneVal || zoneVal.toLowerCase() === "unassigned") && wardVal !== "Unassigned") {
       var autoZ = getZoneFromWard(wardVal);
       if (autoZ) {
         zoneVal = autoZ;
         if (zoneCol !== -1) {
-          sheet.getRange(i + 1, zoneCol + 1).setValue(autoZ);
+          try { sheet.getRange(i + 1, zoneCol + 1).setValue(autoZ); } catch(e) {}
         }
       }
     }
 
-    var patchPayload = {
+    var payload = {
+      "Patient_ID": currentId,
+      "Patient_Name": nameVal,
+      "Date": dateVal,
+      "Disease": diseaseVal,
       "Ward_Name": wardVal,
       "Lat": (latCol !== -1 && rowData[latCol] !== "" && rowData[latCol] !== null && !isNaN(parseFloat(rowData[latCol]))) ? parseFloat(rowData[latCol]) : null,
       "Long": (longCol !== -1 && rowData[longCol] !== "" && rowData[longCol] !== null && !isNaN(parseFloat(rowData[longCol]))) ? parseFloat(rowData[longCol]) : null,
-      "Zone": zoneVal ? zoneVal : "Unassigned"
+      "Zone": zoneVal ? zoneVal : "Unassigned",
+      "Remarks": remarkVal ? remarkVal : null 
     };
+    
+    if (statusVal) payload["Status"] = statusVal;
+    if (mobileVal) payload["Mobile_Number"] = mobileVal;
 
-    var patchUrl = SUPABASE_URL + "?Patient_ID=eq." + encodeURIComponent(currentId);
-    var patchOptions = {
-      'method': 'patch',
-      'contentType': 'application/json',
-      'headers': {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Prefer': 'return=representation'
-      },
-      'payload': JSON.stringify(patchPayload),
-      'muteHttpExceptions': true
-    };
-
-    try {
-      var res = UrlFetchApp.fetch(patchUrl, patchOptions);
-      if (res.getResponseCode() >= 200 && res.getResponseCode() < 300) {
-        successCount++;
-      }
-    } catch (e) {
-      Logger.log("Row " + i + " sync error: " + e.toString());
-    }
+    bulkPayload.push(payload);
   }
 
-  Logger.log("Bulk Sync Completed! Successfully synced " + successCount + " rows to Supabase.");
+  try {
+    var batchSize = 500; 
+    for (var b = 0; b < bulkPayload.length; b += batchSize) {
+      var chunk = bulkPayload.slice(b, b + batchSize);
+      
+      var res = UrlFetchApp.fetch(SUPABASE_URL, {
+        'method': 'post', 
+        'contentType': 'application/json',
+        'headers': {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Prefer': 'return=minimal, resolution=merge-duplicates' 
+        },
+        'payload': JSON.stringify(chunk),
+        'muteHttpExceptions': true
+      });
+      
+      var code = res.getResponseCode();
+      if (code !== 200 && code !== 201 && code !== 204) {
+         Logger.log("Bulk Sync Supabase Error: " + res.getContentText());
+      } else {
+         successCount += chunk.length;
+      }
+    }
+  } catch (e) {
+    Logger.log("Bulk sync error: " + e.toString());
+  }
+
+  Logger.log("Bulk Sync Completed! Successfully upserted " + successCount + " rows to Supabase.");
 }
 
 // =====================================================================
-// 2. REAL-TIME AUTO-FILL & SYNC ON EDIT
+// 2. REAL-TIME AUTO-FILL & SYNC ON EDIT (UPSERT)
 // =====================================================================
 function onSheetEdit(e) {
   if (!e) return;
   var range = e.range;
   var sheet = range.getSheet();
-  var row = range.getRow();
-  if (row === 1) return;
+  
+  var startRow = range.getRow();
+  var numRows = range.getNumRows(); 
+  
+  if (startRow === 1 && numRows === 1) return;
 
   try {
     var lastCol = sheet.getLastColumn();
     var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
-    var rowValues = sheet.getRange(row, 1, 1, lastCol).getValues()[0];
 
-    var idCol = -1, nameCol = -1, dateCol = -1, diseaseCol = -1, wardCol = -1, latCol = -1, longCol = -1, statusCol = -1, zoneCol = -1;
+    var idCol = -1, nameCol = -1, dateCol = -1, diseaseCol = -1, wardCol = -1, latCol = -1, longCol = -1, zoneCol = -1, remarkCol = -1, mobileCol = -1, statusCol = -1;
 
     for (var h = 0; h < headers.length; h++) {
       var norm = headers[h].toLowerCase().replace(/\s+/g, '_');
+      // FIX: Strict check for Patient ID so it doesn't match Patient Name
       if (norm === "patient_id" || norm === "id" || norm === "patient_no") idCol = h;
       if (norm === "patient_name" || norm === "name") nameCol = h;
       if (norm === "date") dateCol = h;
       if (norm === "disease") diseaseCol = h;
-      if (norm === "ward_name" || norm === "ward" || norm === "prabhag") wardCol = h;
+      if (norm === "ward_name" || norm === "ward" || norm.indexOf("prabhag") !== -1 || norm.indexOf("ward") !== -1) wardCol = h;
       if (norm === "lat" || norm === "latitude") latCol = h;
       if (norm === "long" || norm === "longitude") longCol = h;
-      if (norm === "status") statusCol = h;
       if (norm === "zone") zoneCol = h;
+      if (norm === "remark" || norm === "remarks") remarkCol = h; 
+      if (norm === "status" || norm === "verification_status") statusCol = h;
+      if (norm === "user_mobile" || norm === "user_mobile_number" || norm === "mobile_number" || norm.indexOf("mobile") !== -1) mobileCol = h;
     }
 
     if (idCol === -1) idCol = 0;
-    var rawId = rowValues[idCol];
-    if (rawId === "" || rawId === null || rawId === undefined) return;
+    
+    var rowValuesArray = sheet.getRange(startRow, 1, numRows, lastCol).getValues();
+    var fetchRequests = [];
 
-    var cleanDigits = String(rawId).replace(/\D+/g, "");
-    var currentId = cleanDigits ? parseInt(cleanDigits, 10) : rawId;
+    for (var i = 0; i < numRows; i++) {
+      var currentRow = startRow + i;
+      if (currentRow === 1) continue;
 
-    var wardVal = wardCol !== -1 ? formatFullWardName(rowValues[wardCol]) : "Unassigned";
-    var zoneVal = zoneCol !== -1 && rowValues[zoneCol] ? String(rowValues[zoneCol]).trim() : "";
+      var rowValues = rowValuesArray[i];
+      var rawId = rowValues[idCol];
+      if (rawId === "" || rawId === null || rawId === undefined) continue;
 
-    // Real-Time Auto-Fill or Clear Zone in Google Sheet if Ward is edited
-    if (range.getColumn() === wardCol + 1) {
-      if (wardVal && wardVal !== "Unassigned") {
-        var autoZ = getZoneFromWard(wardVal);
-        if (autoZ && zoneCol !== -1) {
-          sheet.getRange(row, zoneCol + 1).setValue(autoZ);
-          zoneVal = autoZ;
-        }
-      } else {
-        if (zoneCol !== -1) {
-          sheet.getRange(row, zoneCol + 1).setValue("");
-          zoneVal = "";
+      var cleanDigits = String(rawId).replace(/\D+/g, "");
+      var currentId = cleanDigits ? parseInt(cleanDigits, 10) : rawId;
+
+      var wardVal = wardCol !== -1 ? formatFullWardName(rowValues[wardCol]) : "Unassigned";
+      var zoneVal = zoneCol !== -1 && rowValues[zoneCol] ? String(rowValues[zoneCol]).trim() : "";
+      var remarkVal = remarkCol !== -1 && rowValues[remarkCol] ? String(rowValues[remarkCol]).trim() : ""; 
+      var statusVal = statusCol !== -1 && rowValues[statusCol] ? String(rowValues[statusCol]).trim() : null; 
+      var mobileVal = mobileCol !== -1 && rowValues[mobileCol] ? String(rowValues[mobileCol]).trim() : null; 
+      var nameVal = nameCol !== -1 && rowValues[nameCol] ? String(rowValues[nameCol]).trim() : null;
+      var diseaseVal = diseaseCol !== -1 && rowValues[diseaseCol] ? String(rowValues[diseaseCol]).trim() : null;
+
+      var dateVal = null;
+      if (dateCol !== -1 && rowValues[dateCol]) {
+        if (rowValues[dateCol] instanceof Date) {
+          dateVal = rowValues[dateCol].toISOString();
+        } else {
+          dateVal = String(rowValues[dateCol]).trim();
         }
       }
+
+      if (range.getColumn() <= wardCol + 1 && range.getColumn() + range.getNumColumns() - 1 >= wardCol + 1) {
+        if (wardVal && wardVal !== "Unassigned") {
+          var autoZ = getZoneFromWard(wardVal);
+          if (autoZ && zoneCol !== -1) {
+            try { sheet.getRange(currentRow, zoneCol + 1).setValue(autoZ); } catch(e) {}
+            zoneVal = autoZ;
+          }
+        } else {
+          if (zoneCol !== -1) {
+            try { sheet.getRange(currentRow, zoneCol + 1).setValue(""); } catch(e) {}
+            zoneVal = "";
+          }
+        }
+      }
+
+      var payload = {
+        "Patient_ID": currentId,
+        "Patient_Name": nameVal,
+        "Date": dateVal,
+        "Disease": diseaseVal,
+        "Ward_Name": wardVal,
+        "Lat": (latCol !== -1 && rowValues[latCol] !== "" && rowValues[latCol] !== null && !isNaN(parseFloat(rowValues[latCol]))) ? parseFloat(rowValues[latCol]) : null,
+        "Long": (longCol !== -1 && rowValues[longCol] !== "" && rowValues[longCol] !== null && !isNaN(parseFloat(rowValues[longCol]))) ? parseFloat(rowValues[longCol]) : null,
+        "Zone": zoneVal ? zoneVal : "Unassigned",
+        "Remarks": remarkVal ? remarkVal : null 
+      };
+      
+      if (statusVal) payload["Status"] = statusVal;
+      if (mobileVal) payload["Mobile_Number"] = mobileVal;
+      
+      fetchRequests.push({
+        'url': SUPABASE_URL,
+        'method': 'post',
+        'contentType': 'application/json',
+        'headers': {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Prefer': 'return=minimal, resolution=merge-duplicates' 
+        },
+        'payload': JSON.stringify(payload),
+        'muteHttpExceptions': true
+      });
     }
-
-    var patchPayload = {
-      "Ward_Name": wardVal,
-      "Lat": (latCol !== -1 && rowValues[latCol] !== "" && rowValues[latCol] !== null && !isNaN(parseFloat(rowValues[latCol]))) ? parseFloat(rowValues[latCol]) : null,
-      "Long": (longCol !== -1 && rowValues[longCol] !== "" && rowValues[longCol] !== null && !isNaN(parseFloat(rowValues[longCol]))) ? parseFloat(rowValues[longCol]) : null,
-      "Zone": zoneVal ? zoneVal : "Unassigned"
-    };
-
-    var supabaseUrl = SUPABASE_URL + "?Patient_ID=eq." + encodeURIComponent(currentId);
-    var options = {
-      'method': 'patch',
-      'contentType': 'application/json',
-      'headers': {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Prefer': 'return=representation'
-      },
-      'payload': JSON.stringify(patchPayload),
-      'muteHttpExceptions': true
-    };
-
-    var res = UrlFetchApp.fetch(supabaseUrl, options);
-    Logger.log("OnEdit Response: " + res.getResponseCode() + " " + res.getContentText());
+    
+    var batchSize = 50; 
+    for (var b = 0; b < fetchRequests.length; b += batchSize) {
+      var batch = fetchRequests.slice(b, b + batchSize);
+      var responses = UrlFetchApp.fetchAll(batch);
+      
+      for (var r = 0; r < responses.length; r++) {
+         var code = responses[r].getResponseCode();
+         if (code !== 200 && code !== 201 && code !== 204) {
+            Logger.log("Real-time Sync Supabase Error: " + responses[r].getContentText());
+         }
+      }
+      
+      if (b + batchSize < fetchRequests.length) {
+        Utilities.sleep(1500); 
+      }
+    }
+    
   } catch (err) {
     Logger.log("Real-time Edit Sync Error: " + err.toString());
   }
 }
 
-function onEdit(e) {
+function onSheetEditTrigger(e) {
   onSheetEdit(e);
 }
 
@@ -320,77 +353,94 @@ function doPost(e) {
 
     for (var h = 0; h < headers.length; h++) {
       var norm = headers[h].toLowerCase().replace(/\s+/g, '_');
-      if (norm === "patient_id" || norm === "id" || norm === "patient_no" || norm.indexOf("patient") !== -1 || norm.indexOf("id") !== -1) {
-        if (idCol === -1) idCol = h;
+      
+      // FIX: Strict check for Patient ID so it doesn't match Patient Name
+      if (norm === "patient_id" || norm === "id" || norm === "patient_no") {
+        idCol = h;
       }
       if (norm === "zone") zoneCol = h;
       if (norm === "ward_name" || norm === "ward" || norm.indexOf("prabhag") !== -1 || norm.indexOf("ward") !== -1) {
-        if (wardCol === -1) wardCol = h;
+        wardCol = h;
       }
       if (norm === "lat" || norm === "latitude") latCol = h;
       if (norm === "long" || norm === "longitude") longCol = h;
       if (norm === "location_photo_url") photoCol = h;
-      if (norm === "verification_status") statusCol = h;
+      if (norm === "verification_status" || norm === "status") statusCol = h;
       if (norm === "remark" || norm === "remarks") remarkCol = h;
-      if (norm === "user_mobile_number" || norm === "mobile_number" || norm.indexOf("mobile") !== -1) mobileCol = h;
+      if (norm === "user_mobile" || norm === "user_mobile_number" || norm === "mobile_number" || norm.indexOf("mobile") !== -1) mobileCol = h;
     }
 
     if (idCol === -1) idCol = 0;
-    // अगर Sheet में User Mobile Number नाम का हेडर नहीं मिला, तो by default Column J (Index 9) को यूज़ करेगा
-    if (mobileCol === -1) mobileCol = 9; 
-    // अगर Sheet में Remark नाम का हेडर नहीं मिला, तो by default Column K (Index 10) को यूज़ करेगा
-    if (remarkCol === -1) remarkCol = 10; 
+    if (remarkCol === -1) remarkCol = 9; 
+    if (mobileCol === -1) mobileCol = 10; 
 
-    var autoZone = data.zone || getZoneFromWard(data.wardName);
+    var autoZone = data.zone;
+    if (!autoZone || autoZone === "Unassigned" || autoZone === "Unknown Zone") {
+      autoZone = getZoneFromWard(data.wardName);
+    }
 
     for (var i = 1; i < rows.length; i++) {
       var rowCleanId = String(rows[i][idCol]).replace(/\D+/g, "");
       var dataCleanId = String(data.patientId).replace(/\D+/g, "");
 
       if (rowCleanId && dataCleanId && rowCleanId === dataCleanId) {
-        if (autoZone && zoneCol !== -1) sheet.getRange(i + 1, zoneCol + 1).setValue(autoZone);
-        if (wardCol !== -1 && data.wardName) sheet.getRange(i + 1, wardCol + 1).setValue(formatFullWardName(data.wardName));
-        if (latCol !== -1 && data.lat) sheet.getRange(i + 1, latCol + 1).setValue(data.lat);
-        if (longCol !== -1 && data.long) sheet.getRange(i + 1, longCol + 1).setValue(data.long);
-        if (photoCol !== -1 && data.locationPhotoUrl) sheet.getRange(i + 1, photoCol + 1).setValue(data.locationPhotoUrl);
-        if (statusCol !== -1) sheet.getRange(i + 1, statusCol + 1).setValue("Verified");
         
-        // --- ADDED: REMARKS & YELLOW COLOR LOGIC ---
-        if (data.remarks && String(data.remarks).trim() !== "") {
-          sheet.getRange(i + 1, remarkCol + 1).setValue(data.remarks);
-          // Row को Yellow कलर करना
+        // ** NEW LOGIC: Check if this is an issue report **
+        var isIssue = data.action === 'REPORT_ISSUE' || data.isIssue || (data.remarks && String(data.remarks).trim() !== "");
+
+        if (autoZone && zoneCol !== -1 && autoZone !== "Unassigned" && autoZone !== "Unknown Zone") {
+          try { sheet.getRange(i + 1, zoneCol + 1).setValue(autoZone); } catch (e) {}
+        }
+        
+        if (wardCol !== -1 && data.wardName && data.wardName !== "Unassigned" && data.wardName !== "Unknown") {
+          try { sheet.getRange(i + 1, wardCol + 1).setValue(formatFullWardName(data.wardName)); } catch (e) {}
+        }
+        
+        // Update GPS & Photo only if it's NOT an issue
+        if (!isIssue) {
+          if (latCol !== -1 && data.lat) sheet.getRange(i + 1, latCol + 1).setValue(data.lat);
+          if (longCol !== -1 && data.long) sheet.getRange(i + 1, longCol + 1).setValue(data.long);
+          if (photoCol !== -1 && data.locationPhotoUrl) sheet.getRange(i + 1, photoCol + 1).setValue(data.locationPhotoUrl);
+        }
+        
+        if (statusCol !== -1) {
+          try { sheet.getRange(i + 1, statusCol + 1).setValue(isIssue ? "Flagged/Issue" : "Verified"); } catch (e) {}
+        }
+        
+        if (isIssue) {
+          if (data.remarks && String(data.remarks).trim() !== "") {
+            sheet.getRange(i + 1, remarkCol + 1).setValue(data.remarks);
+          }
           sheet.getRange(i + 1, 1, 1, sheet.getLastColumn()).setBackground("#FFFF00"); 
         } else {
-          // अगर नार्मल केस है, तो बैकग्राउंड वाइट रखें
           sheet.getRange(i + 1, 1, 1, sheet.getLastColumn()).setBackground("#FFFFFF");
         }
         
-        // --- ADDED: MOBILE NUMBER LOGIC ---
         if (data.mobileNumber && String(data.mobileNumber).trim() !== "") {
           sheet.getRange(i + 1, mobileCol + 1).setValue(data.mobileNumber);
         }
-        // -------------------------------------------
         break;
       }
     }
 
-    // Direct REST PATCH Sync to Supabase DB from Apps Script Webhook
+    // Direct REST PATCH Sync to Supabase DB (Kept as PATCH because dashboard verifications are strictly updates)
     try {
       var spCleanId = String(data.patientId).replace(/\D+/g, "");
       var spUrl = SUPABASE_URL + "?Patient_ID=eq." + (spCleanId ? spCleanId : encodeURIComponent(data.patientId));
       var spPayload = {};
-      if (data.wardName) spPayload["Ward_Name"] = formatFullWardName(data.wardName);
-      if (data.lat) spPayload["Lat"] = parseFloat(data.lat);
-      if (data.long) spPayload["Long"] = parseFloat(data.long);
-      if (autoZone) spPayload["Zone"] = autoZone;
+      if (data.wardName && data.wardName !== "Unassigned" && data.wardName !== "Unknown") spPayload["Ward_Name"] = formatFullWardName(data.wardName);
       
-      // ADDED: Sync Remarks to Supabase
+      // Update GPS in Supabase ONLY IF it's not an issue
+      if (!isIssue) {
+        if (data.lat) spPayload["Lat"] = parseFloat(data.lat);
+        if (data.long) spPayload["Long"] = parseFloat(data.long);
+      }
+      
+      if (autoZone && autoZone !== "Unassigned" && autoZone !== "Unknown Zone") spPayload["Zone"] = autoZone;
       if (data.remarks) spPayload["Remarks"] = data.remarks;
-      
-      // ADDED: Sync Mobile Number to Supabase
       if (data.mobileNumber) spPayload["Mobile_Number"] = data.mobileNumber;
 
-      UrlFetchApp.fetch(spUrl, {
+      var res = UrlFetchApp.fetch(spUrl, {
         "method": "patch",
         "contentType": "application/json",
         "headers": {
@@ -400,6 +450,12 @@ function doPost(e) {
         "payload": JSON.stringify(spPayload),
         "muteHttpExceptions": true
       });
+      
+      var resCode = res.getResponseCode();
+      if (resCode !== 200 && resCode !== 204) {
+          Logger.log("doPost Supabase Sync Error: " + res.getContentText());
+      }
+      
     } catch (spErr) {
       Logger.log("Supabase sync inside doPost error: " + spErr.toString());
     }

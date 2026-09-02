@@ -328,10 +328,10 @@ export default function SurveillanceMap({
         const hasCases = count > 0;
 
         return {
-          color: isCriticalHotspot ? '#991b1b' : '#1d4ed8',
-          weight: isCriticalHotspot ? 2.5 : hasCases ? 2 : 1.5,
+          color: hasCases ? '#ffffff' : '#1d4ed8',
+          weight: isCriticalHotspot ? 2.5 : hasCases ? 1.5 : 1.2,
           fillColor: getDensityColor(count),
-          fillOpacity: hasCases ? 0.85 : 0.15,
+          fillOpacity: hasCases ? 0.85 : 0.05,
           className: isCriticalHotspot ? 'hotspot-ward-glow' : '',
         };
       },

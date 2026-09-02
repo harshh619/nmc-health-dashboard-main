@@ -175,6 +175,14 @@ export default function FieldVerificationModal({
 
   // Handle Photo File Selection / Camera Capture with GPS Watermark
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Block photo upload if GPS is not captured yet (unless reporting issue)
+    if (!isReportingIssue && (lat === '' || long === '' || lat === 0 || long === 0)) {
+      alert('⚠️ Click "Auto-Capture GPS" first!\n\nGPS coordinates are required before taking a photo so that location data can be watermarked on the image.');
+      // Reset the file input so user can try again after GPS capture
+      e.target.value = '';
+      return;
+    }
+
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 8 * 1024 * 1024) {

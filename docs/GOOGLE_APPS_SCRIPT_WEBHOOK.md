@@ -366,13 +366,13 @@ function doPost(e) {
       if (norm === "long" || norm === "longitude") longCol = h;
       if (norm === "location_photo_url") photoCol = h;
       if (norm === "verification_status" || norm === "status") statusCol = h;
-      if (norm === "remark" || norm === "remarks") remarkCol = h;
-      if (norm === "user_mobile" || norm === "user_mobile_number" || norm === "mobile_number" || norm.indexOf("mobile") !== -1) mobileCol = h;
+      if (norm.indexOf("remark") !== -1) remarkCol = h;
+      if (norm.indexOf("mobile") !== -1) mobileCol = h;
     }
 
     if (idCol === -1) idCol = 0;
-    if (remarkCol === -1) remarkCol = 9; 
-    if (mobileCol === -1) mobileCol = 10; 
+    if (mobileCol === -1) mobileCol = 9;  // Column J
+    if (remarkCol === -1) remarkCol = 10; // Column K
 
     var autoZone = data.zone;
     if (!autoZone || autoZone === "Unassigned" || autoZone === "Unknown Zone") {
@@ -389,35 +389,35 @@ function doPost(e) {
         var isIssue = data.action === 'REPORT_ISSUE' || data.isIssue || (data.remarks && String(data.remarks).trim() !== "");
 
         if (autoZone && zoneCol !== -1 && autoZone !== "Unassigned" && autoZone !== "Unknown Zone") {
-          try { sheet.getRange(i + 1, zoneCol + 1).setValue(autoZone); } catch (e) {}
+          try { sheet.getRange(i + 1, zoneCol + 1).setValue(autoZone); } catch (errIgnore) {}
         }
         
         if (wardCol !== -1 && data.wardName && data.wardName !== "Unassigned" && data.wardName !== "Unknown") {
-          try { sheet.getRange(i + 1, wardCol + 1).setValue(formatFullWardName(data.wardName)); } catch (e) {}
+          try { sheet.getRange(i + 1, wardCol + 1).setValue(formatFullWardName(data.wardName)); } catch (errIgnore) {}
         }
         
         // Update GPS & Photo only if it's NOT an issue
         if (!isIssue) {
-          if (latCol !== -1 && data.lat) sheet.getRange(i + 1, latCol + 1).setValue(data.lat);
-          if (longCol !== -1 && data.long) sheet.getRange(i + 1, longCol + 1).setValue(data.long);
-          if (photoCol !== -1 && data.locationPhotoUrl) sheet.getRange(i + 1, photoCol + 1).setValue(data.locationPhotoUrl);
+          if (latCol !== -1 && data.lat) { try { sheet.getRange(i + 1, latCol + 1).setValue(data.lat); } catch (errIgnore){} }
+          if (longCol !== -1 && data.long) { try { sheet.getRange(i + 1, longCol + 1).setValue(data.long); } catch (errIgnore){} }
+          if (photoCol !== -1 && data.locationPhotoUrl) { try { sheet.getRange(i + 1, photoCol + 1).setValue(data.locationPhotoUrl); } catch (errIgnore){} }
         }
         
         if (statusCol !== -1) {
-          try { sheet.getRange(i + 1, statusCol + 1).setValue(isIssue ? "Flagged/Issue" : "Verified"); } catch (e) {}
+          try { sheet.getRange(i + 1, statusCol + 1).setValue(isIssue ? "Flagged/Issue" : "Verified"); } catch (errIgnore) {}
         }
         
         if (isIssue) {
           if (data.remarks && String(data.remarks).trim() !== "") {
-            sheet.getRange(i + 1, remarkCol + 1).setValue(data.remarks);
+            try { sheet.getRange(i + 1, remarkCol + 1).setValue(data.remarks); } catch(errIgnore) {}
           }
-          sheet.getRange(i + 1, 1, 1, sheet.getLastColumn()).setBackground("#FFFF00"); 
+          try { sheet.getRange(i + 1, 1, 1, 15).setBackground("#FFFF00"); } catch(errIgnore) {}
         } else {
-          sheet.getRange(i + 1, 1, 1, sheet.getLastColumn()).setBackground("#FFFFFF");
+          try { sheet.getRange(i + 1, 1, 1, 15).setBackground("#FFFFFF"); } catch(errIgnore) {}
         }
         
         if (data.mobileNumber && String(data.mobileNumber).trim() !== "") {
-          sheet.getRange(i + 1, mobileCol + 1).setValue(data.mobileNumber);
+          try { sheet.getRange(i + 1, mobileCol + 1).setValue(data.mobileNumber); } catch(errIgnore) {}
         }
         break;
       }

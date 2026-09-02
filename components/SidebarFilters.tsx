@@ -467,14 +467,14 @@ const SidebarFilters = React.memo(function SidebarFilters({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {zoneSummary.length === 0 ? (
+              {zoneSummary.filter(z => z.Zone !== 'Unassigned').length === 0 ? (
                 <tr>
                   <td colSpan={2} className="py-2.5 px-3 text-xs text-slate-400 dark:text-slate-500 text-center">
                     No cases matching filters
                   </td>
                 </tr>
               ) : (
-                zoneSummary.map(({ Zone, Cases }) => (
+                zoneSummary.filter(z => z.Zone !== 'Unassigned').map(({ Zone, Cases }) => (
                   <tr
                     key={Zone}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors"

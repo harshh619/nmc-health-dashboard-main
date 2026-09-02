@@ -147,11 +147,13 @@ export default function AnalyticsCharts({
       }
     });
 
-    const sortedZ = Array.from(zSet).sort((a, b) => {
-      const numA = parseInt(a, 10) || 0;
-      const numB = parseInt(b, 10) || 0;
-      return numA - numB;
-    });
+    const sortedZ = Array.from(zSet)
+      .filter((z) => z.toLowerCase() !== 'unassigned' && z.toLowerCase() !== 'unknown zone')
+      .sort((a, b) => {
+        const numA = parseInt(a, 10) || 0;
+        const numB = parseInt(b, 10) || 0;
+        return numA - numB;
+      });
 
     return {
       riskMatrix: matrix,

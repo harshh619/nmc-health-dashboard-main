@@ -399,7 +399,7 @@ const SidebarFilters = React.memo(function SidebarFilters({
         />
 
         {/* Zone Filter */}
-        {userSession?.role === 'ZONE_OFFICER' ? (
+        {(userSession?.role === 'ZONE_OFFICER' || userSession?.role === 'FIELD_OFFICER') ? (
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
               <span>Assigned Zone</span>

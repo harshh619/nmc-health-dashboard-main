@@ -454,7 +454,7 @@ const SidebarFilters = React.memo(function SidebarFilters({
             <span>Zone-wise Cases</span>
           </span>
           <span className="text-[10px] text-slate-400 font-normal">
-            ({zoneSummary.length} zones)
+            ({zoneSummary.filter(z => z.Zone !== 'Unassigned').length} zones)
           </span>
         </h3>
 

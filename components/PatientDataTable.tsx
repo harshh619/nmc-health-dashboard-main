@@ -62,7 +62,7 @@ const PatientDataTable = React.memo(function PatientDataTable({
   });
 
   const sortedData = React.useMemo(() => {
-    return sortPatientRecordsById(filteredData);
+    return sortPatientRecordsById(filteredData).reverse();
   }, [filteredData]);
 
   const totalPages = Math.ceil(sortedData.length / pageSize) || 1;

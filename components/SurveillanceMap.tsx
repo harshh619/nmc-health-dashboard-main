@@ -328,7 +328,7 @@ export default function SurveillanceMap({
         const hasCases = count > 0;
 
         return {
-          color: hasCases ? '#ffffff' : '#1d4ed8',
+          color: '#1d4ed8', // Always blue outline
           weight: isCriticalHotspot ? 2.5 : hasCases ? 1.5 : 1.2,
           fillColor: getDensityColor(count),
           fillOpacity: hasCases ? 0.85 : 0.05,

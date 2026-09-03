@@ -14,6 +14,7 @@ import {
   Navigation,
   Eye,
   EyeOff,
+  Download,
 } from 'lucide-react';
 import { UserSession } from '../lib/types';
 import PushNotificationManager from './PushNotificationManager';
@@ -235,6 +236,17 @@ export default function CommandToolbar({
             </>
           ) }
         </button>
+
+        {/* Download APK Button */}
+        <a
+          href="/app.apk"
+          download="NMC_Field_Tracker.apk"
+          className="flex-1 sm:flex-none justify-center px-2 py-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
+          title="Download Android APK"
+        >
+          <Download className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+          <span className="hidden sm:inline">App APK</span>
+        </a>
 
         {/* Logout / Switch Account Button */}
         {onLogout && (
